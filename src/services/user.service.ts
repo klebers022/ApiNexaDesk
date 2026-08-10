@@ -2,7 +2,7 @@ import { pool } from "../database/connection";
 
 import bcrypt from "bcrypt";
 
-import { CreateUserInput, ListUsersQuery } from "../schemas/user.schema";
+import { CreateUserInput, ListUsersQuery,  UpdateUserInput, } from "../schemas/user.schema";
 
 interface DatabaseUser {
   id: string;
@@ -27,6 +27,195 @@ interface CountResult {
 
 interface ListUsersParams extends ListUsersQuery {
   companyId: string;
+}
+
+interface UpdateUserParams
+  extends UpdateUserInput {
+  userId: string;
+  companyId: string;
+}
+
+export async function updateUser({
+  userId,
+  companyId,
+  name,
+  email,
+  role,
+  status,
+  customerId,
+}: UpdateUserParams) {
+  const currentResult = await pool.query<{
+    id: string;
+    company_id: string;
+    customer_id: string | null;
+    name: string;
+    email: string;
+    role: "ADMIN" | "AGENT" | "REQUESTER";
+    status: "ACTIVE" | "INACTIVE";
+  }>(
+    `
+      SELECT
+        id,
+        company_id,
+        customer_id,
+        name,
+        email,
+        role,
+        status
+      FROM users
+      WHERE id = $1
+        AND company_id = $2
+      LIMIT 1;
+    `,
+    [userId, companyId]
+  );
+
+  const currentUser = currentResult.rows[0];
+
+  if (!currentUser) {
+    throw new Error("USER_NOT_FOUND");
+  }
+
+  // Verifica duplicidade de e-mail
+  if (email) {
+    const emailResult = await pool.query<{ id: string }>(
+      `
+        SELECT id
+        FROM users
+        WHERE LOWER(email) = LOWER($1)
+          AND id <> $2
+        LIMIT 1;
+      `,
+      [email, userId]
+    );
+
+    if (emailResult.rows[0]) {
+      throw new Error("EMAIL_ALREADY_EXISTS");
+    }
+  }
+
+  const finalRole =
+    role ?? currentUser.role;
+
+  let finalCustomerId:
+    | string
+    | null =
+    customerId !== undefined
+      ? customerId
+      : currentUser.customer_id;
+
+  // ADMIN e AGENT nunca possuem customer
+  if (finalRole !== "REQUESTER") {
+    if (
+      customerId !== undefined &&
+      customerId !== null
+    ) {
+      throw new Error(
+        "CUSTOMER_NOT_ALLOWED"
+      );
+    }
+
+    finalCustomerId = null;
+  }
+
+  // REQUESTER precisa obrigatoriamente de customer
+  if (
+    finalRole === "REQUESTER" &&
+    !finalCustomerId
+  ) {
+    throw new Error(
+      "CUSTOMER_REQUIRED"
+    );
+  }
+
+  // Se houver customer, validar se pertence à mesma empresa
+  if (
+    finalRole === "REQUESTER" &&
+    finalCustomerId
+  ) {
+    const customerResult =
+      await pool.query<{ id: string }>(
+        `
+          SELECT id
+          FROM customers
+          WHERE id = $1
+            AND company_id = $2
+          LIMIT 1;
+        `,
+        [
+          finalCustomerId,
+          companyId,
+        ]
+      );
+
+    if (!customerResult.rows[0]) {
+      throw new Error(
+        "CUSTOMER_NOT_FOUND"
+      );
+    }
+  }
+
+  const result = await pool.query<{
+    id: string;
+    company_id: string;
+    customer_id: string | null;
+    name: string;
+    email: string;
+    role: "ADMIN" | "AGENT" | "REQUESTER";
+    status: "ACTIVE" | "INACTIVE";
+    created_at: Date;
+    updated_at: Date;
+  }>(
+    `
+      UPDATE users
+      SET
+        name = COALESCE($1, name),
+        email = COALESCE($2, email),
+        role = $3,
+        status = COALESCE($4, status),
+        customer_id = $5
+
+      WHERE id = $6
+        AND company_id = $7
+
+      RETURNING
+        id,
+        company_id,
+        customer_id,
+        name,
+        email,
+        role,
+        status,
+        created_at,
+        updated_at;
+    `,
+    [
+      name ?? null,
+      email ?? null,
+      finalRole,
+      status ?? null,
+      finalCustomerId,
+      userId,
+      companyId,
+    ]
+  );
+
+  const user = result.rows[0];
+
+  return {
+    id: user.id,
+    companyId: user.company_id,
+    customerId: user.customer_id,
+
+    name: user.name,
+    email: user.email,
+
+    role: user.role,
+    status: user.status,
+
+    createdAt: user.created_at,
+    updatedAt: user.updated_at,
+  };
 }
 
 export async function listUsers({
@@ -354,6 +543,73 @@ export async function createUser({
     role: user.role,
     status: user.status,
     createdAt: user.created_at,
+    updatedAt: user.updated_at,
+  };
+}
+
+interface DeactivateUserParams {
+  userId: string;
+  companyId: string;
+  authenticatedUserId: string;
+}
+
+export async function deactivateUser({
+  userId,
+  companyId,
+  authenticatedUserId,
+}: DeactivateUserParams) {
+  if (userId === authenticatedUserId) {
+    throw new Error(
+      "CANNOT_DEACTIVATE_SELF"
+    );
+  }
+
+  const result = await pool.query<{
+    id: string;
+    company_id: string;
+    name: string;
+    email: string;
+    role: "ADMIN" | "AGENT" | "REQUESTER";
+    status: "ACTIVE" | "INACTIVE";
+    updated_at: Date;
+  }>(
+    `
+      UPDATE users
+      SET status = 'INACTIVE'
+
+      WHERE id = $1
+        AND company_id = $2
+
+      RETURNING
+        id,
+        company_id,
+        name,
+        email,
+        role,
+        status,
+        updated_at;
+    `,
+    [
+      userId,
+      companyId,
+    ]
+  );
+
+  const user = result.rows[0];
+
+  if (!user) {
+    throw new Error(
+      "USER_NOT_FOUND"
+    );
+  }
+
+  return {
+    id: user.id,
+    companyId: user.company_id,
+    name: user.name,
+    email: user.email,
+    role: user.role,
+    status: user.status,
     updatedAt: user.updated_at,
   };
 }
