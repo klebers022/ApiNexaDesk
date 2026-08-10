@@ -1,5 +1,8 @@
 import { pool } from "../database/connection";
-import { ListUsersQuery } from "../schemas/user.schema";
+
+import bcrypt from "bcrypt";
+
+import { CreateUserInput, ListUsersQuery } from "../schemas/user.schema";
 
 interface DatabaseUser {
   id: string;
@@ -218,6 +221,138 @@ export async function getUserById({ userId, companyId }: GetUserByIdParams) {
     role: user.role,
     status: user.status,
 
+    createdAt: user.created_at,
+    updatedAt: user.updated_at,
+  };
+}
+
+interface CreateUserParams
+  extends CreateUserInput {
+  companyId: string;
+}
+
+export async function createUser({
+  companyId,
+  name,
+  email,
+  password,
+  role,
+  customerId,
+}: CreateUserParams) {
+  const existingUser =
+    await pool.query<{ id: string }>(
+      `
+        SELECT id
+        FROM users
+        WHERE LOWER(email) = LOWER($1)
+        LIMIT 1;
+      `,
+      [email]
+    );
+
+  if (existingUser.rows[0]) {
+    throw new Error("EMAIL_ALREADY_EXISTS");
+  }
+
+  let validatedCustomerId:
+    | string
+    | null = null;
+
+  if (role === "REQUESTER") {
+    const customer =
+      await pool.query<{ id: string }>(
+        `
+          SELECT id
+          FROM customers
+          WHERE id = $1
+            AND company_id = $2
+          LIMIT 1;
+        `,
+        [
+          customerId,
+          companyId,
+        ]
+      );
+
+    if (!customer.rows[0]) {
+      throw new Error(
+        "CUSTOMER_NOT_FOUND"
+      );
+    }
+
+    validatedCustomerId =
+      customer.rows[0].id;
+  }
+
+  const passwordHash =
+    await bcrypt.hash(password, 10);
+
+  const result = await pool.query<{
+    id: string;
+    company_id: string;
+    customer_id: string | null;
+    name: string;
+    email: string;
+    role:
+      | "ADMIN"
+      | "AGENT"
+      | "REQUESTER";
+    status:
+      | "ACTIVE"
+      | "INACTIVE";
+    created_at: Date;
+    updated_at: Date;
+  }>(
+    `
+      INSERT INTO users (
+        company_id,
+        customer_id,
+        name,
+        email,
+        password_hash,
+        role,
+        status
+      )
+      VALUES (
+        $1,
+        $2,
+        $3,
+        $4,
+        $5,
+        $6,
+        'ACTIVE'
+      )
+      RETURNING
+        id,
+        company_id,
+        customer_id,
+        name,
+        email,
+        role,
+        status,
+        created_at,
+        updated_at;
+    `,
+    [
+      companyId,
+      validatedCustomerId,
+      name,
+      email,
+      passwordHash,
+      role,
+    ]
+  );
+
+  const user = result.rows[0];
+
+  return {
+    id: user.id,
+    companyId: user.company_id,
+    customerId: user.customer_id,
+    name: user.name,
+    email: user.email,
+    role: user.role,
+    status: user.status,
     createdAt: user.created_at,
     updatedAt: user.updated_at,
   };
