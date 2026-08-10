@@ -3,6 +3,18 @@ import { Request, Response } from "express";
 import { loginSchema } from "../schemas/auth.schema";
 import { login } from "../services/auth.service";
 
+
+export async function meController(
+  request: Request,
+  response: Response
+) {
+  return response.status(200).json({
+    data: {
+      user: request.user,
+    },
+  });
+}
+
 export async function loginController(
   request: Request,
   response: Response
