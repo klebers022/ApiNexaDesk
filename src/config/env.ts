@@ -11,16 +11,19 @@ const envSchema = z.object({
   DATABASE_URL: z.string().min(1, "DATABASE_URL é obrigatória"),
 
   FRONTEND_URL: z.string().url(),
+
+  JWT_SECRET: z
+    .string()
+    .min(32, "JWT_SECRET deve ter pelo menos 32 caracteres"),
+
+  JWT_EXPIRES_IN: z.string().default("1h"),
 });
 
 const parsedEnv = envSchema.safeParse(process.env);
 
 if (!parsedEnv.success) {
   console.error("❌ Variáveis de ambiente inválidas:");
-
-  console.error(
-    parsedEnv.error.flatten().fieldErrors
-  );
+  console.error(parsedEnv.error.flatten().fieldErrors);
 
   process.exit(1);
 }
