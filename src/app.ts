@@ -6,6 +6,7 @@ import { env } from "./config/env";
 
 import { healthRoutes } from "./routes/health.routes";
 import { authRoutes } from "./routes/auth.routes";
+import { customerRoutes } from "./routes/customer.routes";
 
 export const app = express();
 
@@ -22,3 +23,5 @@ app.use("/api/v1/health", healthRoutes);
 app.use("/api/v1/auth", authRoutes);
 
 app.use("/api/v1/users", userRoutes);
+
+app.use("/api/v1/customers", customerRoutes);

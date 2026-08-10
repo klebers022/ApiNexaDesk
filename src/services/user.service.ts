@@ -2,7 +2,11 @@ import { pool } from "../database/connection";
 
 import bcrypt from "bcrypt";
 
-import { CreateUserInput, ListUsersQuery,  UpdateUserInput, } from "../schemas/user.schema";
+import {
+  CreateUserInput,
+  ListUsersQuery,
+  UpdateUserInput,
+} from "../schemas/user.schema";
 
 interface DatabaseUser {
   id: string;
@@ -29,8 +33,7 @@ interface ListUsersParams extends ListUsersQuery {
   companyId: string;
 }
 
-interface UpdateUserParams
-  extends UpdateUserInput {
+interface UpdateUserParams extends UpdateUserInput {
   userId: string;
   companyId: string;
 }
@@ -67,7 +70,7 @@ export async function updateUser({
         AND company_id = $2
       LIMIT 1;
     `,
-    [userId, companyId]
+    [userId, companyId],
   );
 
   const currentUser = currentResult.rows[0];
@@ -86,7 +89,7 @@ export async function updateUser({
           AND id <> $2
         LIMIT 1;
       `,
-      [email, userId]
+      [email, userId],
     );
 
     if (emailResult.rows[0]) {
@@ -94,64 +97,40 @@ export async function updateUser({
     }
   }
 
-  const finalRole =
-    role ?? currentUser.role;
+  const finalRole = role ?? currentUser.role;
 
-  let finalCustomerId:
-    | string
-    | null =
-    customerId !== undefined
-      ? customerId
-      : currentUser.customer_id;
+  let finalCustomerId: string | null =
+    customerId !== undefined ? customerId : currentUser.customer_id;
 
   // ADMIN e AGENT nunca possuem customer
   if (finalRole !== "REQUESTER") {
-    if (
-      customerId !== undefined &&
-      customerId !== null
-    ) {
-      throw new Error(
-        "CUSTOMER_NOT_ALLOWED"
-      );
+    if (customerId !== undefined && customerId !== null) {
+      throw new Error("CUSTOMER_NOT_ALLOWED");
     }
 
     finalCustomerId = null;
   }
 
   // REQUESTER precisa obrigatoriamente de customer
-  if (
-    finalRole === "REQUESTER" &&
-    !finalCustomerId
-  ) {
-    throw new Error(
-      "CUSTOMER_REQUIRED"
-    );
+  if (finalRole === "REQUESTER" && !finalCustomerId) {
+    throw new Error("CUSTOMER_REQUIRED");
   }
 
   // Se houver customer, validar se pertence à mesma empresa
-  if (
-    finalRole === "REQUESTER" &&
-    finalCustomerId
-  ) {
-    const customerResult =
-      await pool.query<{ id: string }>(
-        `
+  if (finalRole === "REQUESTER" && finalCustomerId) {
+    const customerResult = await pool.query<{ id: string }>(
+      `
           SELECT id
           FROM customers
           WHERE id = $1
             AND company_id = $2
           LIMIT 1;
         `,
-        [
-          finalCustomerId,
-          companyId,
-        ]
-      );
+      [finalCustomerId, companyId],
+    );
 
     if (!customerResult.rows[0]) {
-      throw new Error(
-        "CUSTOMER_NOT_FOUND"
-      );
+      throw new Error("CUSTOMER_NOT_FOUND");
     }
   }
 
@@ -197,7 +176,7 @@ export async function updateUser({
       finalCustomerId,
       userId,
       companyId,
-    ]
+    ],
   );
 
   const user = result.rows[0];
@@ -415,8 +394,7 @@ export async function getUserById({ userId, companyId }: GetUserByIdParams) {
   };
 }
 
-interface CreateUserParams
-  extends CreateUserInput {
+interface CreateUserParams extends CreateUserInput {
   companyId: string;
 }
 
@@ -428,53 +406,42 @@ export async function createUser({
   role,
   customerId,
 }: CreateUserParams) {
-  const existingUser =
-    await pool.query<{ id: string }>(
-      `
+  const existingUser = await pool.query<{ id: string }>(
+    `
         SELECT id
         FROM users
         WHERE LOWER(email) = LOWER($1)
         LIMIT 1;
       `,
-      [email]
-    );
+    [email],
+  );
 
   if (existingUser.rows[0]) {
     throw new Error("EMAIL_ALREADY_EXISTS");
   }
 
-  let validatedCustomerId:
-    | string
-    | null = null;
+  let validatedCustomerId: string | null = null;
 
   if (role === "REQUESTER") {
-    const customer =
-      await pool.query<{ id: string }>(
-        `
+    const customer = await pool.query<{ id: string }>(
+      `
           SELECT id
           FROM customers
           WHERE id = $1
             AND company_id = $2
           LIMIT 1;
         `,
-        [
-          customerId,
-          companyId,
-        ]
-      );
+      [customerId, companyId],
+    );
 
     if (!customer.rows[0]) {
-      throw new Error(
-        "CUSTOMER_NOT_FOUND"
-      );
+      throw new Error("CUSTOMER_NOT_FOUND");
     }
 
-    validatedCustomerId =
-      customer.rows[0].id;
+    validatedCustomerId = customer.rows[0].id;
   }
 
-  const passwordHash =
-    await bcrypt.hash(password, 10);
+  const passwordHash = await bcrypt.hash(password, 10);
 
   const result = await pool.query<{
     id: string;
@@ -482,13 +449,8 @@ export async function createUser({
     customer_id: string | null;
     name: string;
     email: string;
-    role:
-      | "ADMIN"
-      | "AGENT"
-      | "REQUESTER";
-    status:
-      | "ACTIVE"
-      | "INACTIVE";
+    role: "ADMIN" | "AGENT" | "REQUESTER";
+    status: "ACTIVE" | "INACTIVE";
     created_at: Date;
     updated_at: Date;
   }>(
@@ -522,14 +484,7 @@ export async function createUser({
         created_at,
         updated_at;
     `,
-    [
-      companyId,
-      validatedCustomerId,
-      name,
-      email,
-      passwordHash,
-      role,
-    ]
+    [companyId, validatedCustomerId, name, email, passwordHash, role],
   );
 
   const user = result.rows[0];
@@ -559,9 +514,7 @@ export async function deactivateUser({
   authenticatedUserId,
 }: DeactivateUserParams) {
   if (userId === authenticatedUserId) {
-    throw new Error(
-      "CANNOT_DEACTIVATE_SELF"
-    );
+    throw new Error("CANNOT_DEACTIVATE_SELF");
   }
 
   const result = await pool.query<{
@@ -589,18 +542,13 @@ export async function deactivateUser({
         status,
         updated_at;
     `,
-    [
-      userId,
-      companyId,
-    ]
+    [userId, companyId],
   );
 
   const user = result.rows[0];
 
   if (!user) {
-    throw new Error(
-      "USER_NOT_FOUND"
-    );
+    throw new Error("USER_NOT_FOUND");
   }
 
   return {

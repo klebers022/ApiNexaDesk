@@ -5,7 +5,6 @@ import {
   userIdParamSchema,
   createUserSchema,
   updateUserSchema,
-  
 } from "../schemas/user.schema";
 
 import {
@@ -191,7 +190,7 @@ export async function createUserController(
 
 export async function updateUserController(
   request: Request,
-  response: Response
+  response: Response,
 ) {
   if (!request.user) {
     return response.status(401).json({
@@ -202,10 +201,7 @@ export async function updateUserController(
     });
   }
 
-  const paramsValidation =
-    userIdParamSchema.safeParse(
-      request.params
-    );
+  const paramsValidation = userIdParamSchema.safeParse(request.params);
 
   if (!paramsValidation.success) {
     return response.status(400).json({
@@ -216,30 +212,23 @@ export async function updateUserController(
     });
   }
 
-  const bodyValidation =
-    updateUserSchema.safeParse(
-      request.body
-    );
+  const bodyValidation = updateUserSchema.safeParse(request.body);
 
   if (!bodyValidation.success) {
     return response.status(400).json({
       error: {
         code: "VALIDATION_ERROR",
-        message:
-          "Dados de atualização inválidos.",
-        details:
-          bodyValidation.error.issues,
+        message: "Dados de atualização inválidos.",
+        details: bodyValidation.error.issues,
       },
     });
   }
 
   try {
     const user = await updateUser({
-      userId:
-        paramsValidation.data.id,
+      userId: paramsValidation.data.id,
 
-      companyId:
-        request.user.companyId,
+      companyId: request.user.companyId,
 
       ...bodyValidation.data,
     });
@@ -266,23 +255,16 @@ export async function updateUserController(
       });
     }
 
-    if (
-      error.message ===
-      "EMAIL_ALREADY_EXISTS"
-    ) {
+    if (error.message === "EMAIL_ALREADY_EXISTS") {
       return response.status(409).json({
         error: {
           code: "EMAIL_ALREADY_EXISTS",
-          message:
-            "Já existe um usuário com este e-mail.",
+          message: "Já existe um usuário com este e-mail.",
         },
       });
     }
 
-    if (
-      error.message ===
-      "CUSTOMER_NOT_FOUND"
-    ) {
+    if (error.message === "CUSTOMER_NOT_FOUND") {
       return response.status(404).json({
         error: {
           code: "CUSTOMER_NOT_FOUND",
@@ -291,28 +273,20 @@ export async function updateUserController(
       });
     }
 
-    if (
-      error.message ===
-      "CUSTOMER_REQUIRED"
-    ) {
+    if (error.message === "CUSTOMER_REQUIRED") {
       return response.status(400).json({
         error: {
           code: "CUSTOMER_REQUIRED",
-          message:
-            "Usuários REQUESTER precisam estar vinculados a um cliente.",
+          message: "Usuários REQUESTER precisam estar vinculados a um cliente.",
         },
       });
     }
 
-    if (
-      error.message ===
-      "CUSTOMER_NOT_ALLOWED"
-    ) {
+    if (error.message === "CUSTOMER_NOT_ALLOWED") {
       return response.status(400).json({
         error: {
           code: "CUSTOMER_NOT_ALLOWED",
-          message:
-            "Somente usuários REQUESTER podem possuir cliente.",
+          message: "Somente usuários REQUESTER podem possuir cliente.",
         },
       });
     }
@@ -330,7 +304,7 @@ export async function updateUserController(
 
 export async function deactivateUserController(
   request: Request,
-  response: Response
+  response: Response,
 ) {
   if (!request.user) {
     return response.status(401).json({
@@ -341,10 +315,7 @@ export async function deactivateUserController(
     });
   }
 
-  const validation =
-    userIdParamSchema.safeParse(
-      request.params
-    );
+  const validation = userIdParamSchema.safeParse(request.params);
 
   if (!validation.success) {
     return response.status(400).json({
@@ -358,20 +329,15 @@ export async function deactivateUserController(
   try {
     const user = await deactivateUser({
       userId: validation.data.id,
-      companyId:
-        request.user.companyId,
-      authenticatedUserId:
-        request.user.id,
+      companyId: request.user.companyId,
+      authenticatedUserId: request.user.id,
     });
 
     return response.status(200).json({
       data: user,
     });
   } catch (error) {
-    if (
-      error instanceof Error &&
-      error.message === "USER_NOT_FOUND"
-    ) {
+    if (error instanceof Error && error.message === "USER_NOT_FOUND") {
       return response.status(404).json({
         error: {
           code: "USER_NOT_FOUND",
@@ -380,18 +346,12 @@ export async function deactivateUserController(
       });
     }
 
-    if (
-      error instanceof Error &&
-      error.message ===
-        "CANNOT_DEACTIVATE_SELF"
-    ) {
+    if (error instanceof Error && error.message === "CANNOT_DEACTIVATE_SELF") {
       return response.status(409).json({
         error: {
-          code:
-            "CANNOT_DEACTIVATE_SELF",
+          code: "CANNOT_DEACTIVATE_SELF",
 
-          message:
-            "Você não pode inativar sua própria conta.",
+          message: "Você não pode inativar sua própria conta.",
         },
       });
     }
@@ -400,11 +360,9 @@ export async function deactivateUserController(
 
     return response.status(500).json({
       error: {
-        code:
-          "INTERNAL_SERVER_ERROR",
+        code: "INTERNAL_SERVER_ERROR",
 
-        message:
-          "Erro interno do servidor.",
+        message: "Erro interno do servidor.",
       },
     });
   }
