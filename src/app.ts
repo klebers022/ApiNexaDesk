@@ -9,6 +9,7 @@ import { authRoutes } from "./routes/auth.routes";
 import { customerRoutes } from "./routes/customer.routes";
 import { categoryRoutes } from "./routes/category.routes";
 import { teamRoutes } from "./routes/team.routes";
+import { ticketRoutes } from "./routes/ticket.routes";
 
 export const app = express();
 
@@ -31,3 +32,5 @@ app.use("/api/v1/customers", customerRoutes);
 app.use("/api/v1/categories", categoryRoutes);
 
 app.use("/api/v1/teams", teamRoutes);
+
+app.use("/api/v1/tickets", ticketRoutes);
