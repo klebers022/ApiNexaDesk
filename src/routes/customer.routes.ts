@@ -5,6 +5,7 @@ import {
   getCustomerByIdController,
   createCustomerController,
   updateCustomerController,
+  deactivateCustomerController,
 } from "../controllers/customer.controller";
 
 import { authenticate } from "../middlewares/authenticate";
@@ -39,4 +40,11 @@ customerRoutes.put(
   authenticate,
   authorize("ADMIN"),
   updateCustomerController
+);
+
+customerRoutes.delete(
+  "/:id",
+  authenticate,
+  authorize("ADMIN"),
+  deactivateCustomerController
 );
