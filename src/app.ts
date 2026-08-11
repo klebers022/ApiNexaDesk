@@ -10,6 +10,7 @@ import { customerRoutes } from "./routes/customer.routes";
 import { categoryRoutes } from "./routes/category.routes";
 import { teamRoutes } from "./routes/team.routes";
 import { ticketRoutes } from "./routes/ticket.routes";
+import { notificationRoutes } from "./routes/notification.routes";
 
 export const app = express();
 
@@ -34,3 +35,5 @@ app.use("/api/v1/categories", categoryRoutes);
 app.use("/api/v1/teams", teamRoutes);
 
 app.use("/api/v1/tickets", ticketRoutes);
+
+app.use("/api/v1/notifications", notificationRoutes);

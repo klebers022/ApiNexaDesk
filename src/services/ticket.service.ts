@@ -3,12 +3,16 @@ import { PoolClient } from "pg";
 import { pool } from "../database/connection";
 
 import {
-  CreateTicketCommentInput,  
   AssignTicketInput,
+  CreateTicketCommentInput,
   CreateTicketInput,
   ListTicketsQuery,
   UpdateTicketInput,
 } from "../schemas/ticket.schema";
+
+import {
+  createNotificationWithClient,
+} from "./notification.service";
 
 // ======================================================
 // TYPES
@@ -71,11 +75,15 @@ interface EditableDatabaseTicket {
   id: string;
   company_id: string;
 
+  ticket_number: string;
+
   title: string;
   description: string;
 
   status: TicketStatus;
   priority: TicketPriority;
+
+  requester_id: string;
 
   category_id: string;
 
@@ -84,6 +92,43 @@ interface EditableDatabaseTicket {
 
   resolved_at: Date | null;
   closed_at: Date | null;
+}
+
+interface DatabaseTicketComment {
+  id: string;
+
+  company_id: string;
+  ticket_id: string;
+  user_id: string;
+
+  user_name: string;
+  user_role: UserRole;
+
+  content: string;
+
+  is_internal: boolean;
+
+  created_at: Date;
+  updated_at: Date;
+}
+
+interface DatabaseTicketHistory {
+  id: string;
+
+  company_id: string;
+  ticket_id: string;
+
+  user_id: string | null;
+
+  user_name: string | null;
+  user_role: UserRole | null;
+
+  action: string;
+
+  old_value: string | null;
+  new_value: string | null;
+
+  created_at: Date;
 }
 
 interface CountResult {
@@ -98,8 +143,7 @@ function mapTicket(
   ticket: DatabaseTicket
 ) {
   return {
-    id:
-      ticket.id,
+    id: ticket.id,
 
     companyId:
       ticket.company_id,
@@ -239,8 +283,6 @@ export async function listTickets({
     `);
   }
 
-  // ADMIN não recebe filtro adicional.
-
   // ======================================================
   // FILTERS
   // ======================================================
@@ -312,7 +354,8 @@ export async function listTickets({
   const countResult =
     await pool.query<CountResult>(
       `
-        SELECT COUNT(*) AS total
+        SELECT
+          COUNT(*) AS total
 
         FROM tickets t
 
@@ -328,10 +371,6 @@ export async function listTickets({
 
   const offset =
     (page - 1) * pageSize;
-
-  // ======================================================
-  // PAGINATION
-  // ======================================================
 
   const dataValues = [
     ...values,
@@ -444,7 +483,7 @@ export async function getTicketById({
   userId,
   role,
 }: GetTicketByIdParams) {
-  const conditions = [
+  const conditions: string[] = [
     "t.id = $1",
     "t.company_id = $2",
   ];
@@ -454,10 +493,6 @@ export async function getTicketById({
     companyId,
   ];
 
-  // ======================================================
-  // REQUESTER
-  // ======================================================
-
   if (role === "REQUESTER") {
     values.push(userId);
 
@@ -465,10 +500,6 @@ export async function getTicketById({
       `t.requester_id = $${values.length}`
     );
   }
-
-  // ======================================================
-  // AGENT
-  // ======================================================
 
   if (role === "AGENT") {
     values.push(userId);
@@ -567,9 +598,7 @@ interface CreateTicketParams
   companyId: string;
 
   authenticatedUserId: string;
-
-  authenticatedUserRole:
-    UserRole;
+  authenticatedUserRole: UserRole;
 }
 
 export async function createTicket({
@@ -592,9 +621,7 @@ export async function createTicket({
     await pool.connect();
 
   try {
-    await client.query(
-      "BEGIN"
-    );
+    await client.query("BEGIN");
 
     // ======================================================
     // REQUESTER
@@ -736,10 +763,6 @@ export async function createTicket({
         );
       }
 
-      // ====================================================
-      // SE INFORMOU EQUIPE, O AGENT PRECISA PERTENCER A ELA
-      // ====================================================
-
       if (teamId) {
         const membership =
           await client.query<{
@@ -772,7 +795,7 @@ export async function createTicket({
     }
 
     // ======================================================
-    // INSERT
+    // INSERT TICKET
     // ======================================================
 
     const result =
@@ -862,9 +885,35 @@ export async function createTicket({
       ]
     );
 
-    await client.query(
-      "COMMIT"
-    );
+    // ======================================================
+    // NOTIFICATION - TICKET ASSIGNED
+    // ======================================================
+
+    if (
+      assigneeId &&
+      assigneeId !== authenticatedUserId
+    ) {
+      await createNotificationWithClient(
+        client,
+        {
+          companyId,
+
+          userId:
+            assigneeId,
+
+          type:
+            "TICKET_ASSIGNED",
+
+          title:
+            "Novo ticket atribuído",
+
+          message:
+            `O ticket ${ticket.ticket_number} foi atribuído a você.`,
+        }
+      );
+    }
+
+    await client.query("COMMIT");
 
     return {
       id:
@@ -909,7 +958,6 @@ export async function createTicket({
 
 // ======================================================
 // FIND ACCESSIBLE TICKET
-// Usado nas operações de edição.
 // ======================================================
 
 async function findAccessibleTicket(
@@ -936,10 +984,6 @@ async function findAccessibleTicket(
     companyId,
   ];
 
-  // ======================================================
-  // REQUESTER
-  // ======================================================
-
   if (role === "REQUESTER") {
     values.push(userId);
 
@@ -947,10 +991,6 @@ async function findAccessibleTicket(
       `t.requester_id = $${values.length}`
     );
   }
-
-  // ======================================================
-  // AGENT
-  // ======================================================
 
   if (role === "AGENT") {
     values.push(userId);
@@ -981,11 +1021,15 @@ async function findAccessibleTicket(
           t.id,
           t.company_id,
 
+          t.ticket_number,
+
           t.title,
           t.description,
 
           t.status,
           t.priority,
+
+          t.requester_id,
 
           t.category_id,
 
@@ -1043,9 +1087,7 @@ export async function updateTicket({
     await pool.connect();
 
   try {
-    await client.query(
-      "BEGIN"
-    );
+    await client.query("BEGIN");
 
     const current =
       await findAccessibleTicket(
@@ -1069,7 +1111,7 @@ export async function updateTicket({
     }
 
     // ======================================================
-    // VALIDATE CATEGORY
+    // CATEGORY
     // ======================================================
 
     if (
@@ -1102,10 +1144,6 @@ export async function updateTicket({
         );
       }
     }
-
-    // ======================================================
-    // FINAL VALUES
-    // ======================================================
 
     const finalTitle =
       title ??
@@ -1183,95 +1221,83 @@ export async function updateTicket({
       );
 
     // ======================================================
-    // TITLE HISTORY
+    // PRIORITY HISTORY
     // ======================================================
 
-   
+    if (
+      priority !== undefined &&
+      priority !== current.priority
+    ) {
+      await client.query(
+        `
+          INSERT INTO ticket_history (
+            company_id,
+            ticket_id,
+            user_id,
+            action,
+            old_value,
+            new_value
+          )
 
-    // ======================================================
-    // DESCRIPTION HISTORY
-    // ======================================================
-
-   
-   // ======================================================
-// PRIORITY HISTORY
-// ======================================================
-
-if (
-  priority !== undefined &&
-  priority !== current.priority
-) {
-  await client.query(
-    `
-      INSERT INTO ticket_history (
-        company_id,
-        ticket_id,
-        user_id,
-        action,
-        old_value,
-        new_value
-      )
-
-      VALUES (
-        $1,
-        $2,
-        $3,
-        'PRIORITY_CHANGED',
-        $4,
-        $5
+          VALUES (
+            $1,
+            $2,
+            $3,
+            'PRIORITY_CHANGED',
+            $4,
+            $5
+          );
+        `,
+        [
+          companyId,
+          ticketId,
+          authenticatedUserId,
+          current.priority,
+          priority,
+        ]
       );
-    `,
-    [
-      companyId,
-      ticketId,
-      authenticatedUserId,
-      current.priority,
-      priority,
-    ]
-  );
-}
+    }
 
-// ======================================================
-// CATEGORY HISTORY
-// ======================================================
+    // ======================================================
+    // CATEGORY HISTORY
+    // ======================================================
 
-if (
-  categoryId !== undefined &&
-  categoryId !== current.category_id
-) {
-  await client.query(
-    `
-      INSERT INTO ticket_history (
-        company_id,
-        ticket_id,
-        user_id,
-        action,
-        old_value,
-        new_value
-      )
+    if (
+      categoryId !== undefined &&
+      categoryId !==
+        current.category_id
+    ) {
+      await client.query(
+        `
+          INSERT INTO ticket_history (
+            company_id,
+            ticket_id,
+            user_id,
+            action,
+            old_value,
+            new_value
+          )
 
-      VALUES (
-        $1,
-        $2,
-        $3,
-        'CATEGORY_CHANGED',
-        $4,
-        $5
+          VALUES (
+            $1,
+            $2,
+            $3,
+            'CATEGORY_CHANGED',
+            $4,
+            $5
+          );
+        `,
+        [
+          companyId,
+          ticketId,
+          authenticatedUserId,
+          current.category_id,
+          categoryId,
+        ]
       );
-    `,
-    [
-      companyId,
-      ticketId,
-      authenticatedUserId,
-      current.category_id,
-      categoryId,
-    ]
-  );
-}
+    }
 
-    await client.query(
-      "COMMIT"
-    );
+    await client.query("COMMIT");
 
     const ticket =
       result.rows[0];
@@ -1348,9 +1374,7 @@ export async function assignTicket({
     await pool.connect();
 
   try {
-    await client.query(
-      "BEGIN"
-    );
+    await client.query("BEGIN");
 
     const current =
       await findAccessibleTicket(
@@ -1372,10 +1396,6 @@ export async function assignTicket({
         "TICKET_NOT_FOUND"
       );
     }
-
-    // ======================================================
-    // FINAL VALUES
-    // ======================================================
 
     const finalTeamId =
       teamId !== undefined
@@ -1526,7 +1546,6 @@ export async function assignTicket({
         [
           finalTeamId,
           finalAssigneeId,
-
           ticketId,
           companyId,
         ]
@@ -1610,9 +1629,38 @@ export async function assignTicket({
       );
     }
 
-    await client.query(
-      "COMMIT"
-    );
+    // ======================================================
+    // NOTIFICATION - NEW ASSIGNEE
+    // ======================================================
+
+    if (
+      finalAssigneeId &&
+      finalAssigneeId !==
+        current.assignee_id &&
+      finalAssigneeId !==
+        authenticatedUserId
+    ) {
+      await createNotificationWithClient(
+        client,
+        {
+          companyId,
+
+          userId:
+            finalAssigneeId,
+
+          type:
+            "TICKET_ASSIGNED",
+
+          title:
+            "Novo ticket atribuído",
+
+          message:
+            `O ticket ${current.ticket_number} foi atribuído a você.`,
+        }
+      );
+    }
+
+    await client.query("COMMIT");
 
     const ticket =
       result.rows[0];
@@ -1707,9 +1755,7 @@ export async function changeTicketStatus({
     await pool.connect();
 
   try {
-    await client.query(
-      "BEGIN"
-    );
+    await client.query("BEGIN");
 
     const current =
       await findAccessibleTicket(
@@ -1735,10 +1781,6 @@ export async function changeTicketStatus({
     const currentStatus =
       current.status;
 
-    // ======================================================
-    // SAME STATUS
-    // ======================================================
-
     if (
       currentStatus === status
     ) {
@@ -1746,10 +1788,6 @@ export async function changeTicketStatus({
         "INVALID_STATUS_TRANSITION"
       );
     }
-
-    // ======================================================
-    // VALIDATE TRANSITION
-    // ======================================================
 
     const possibleStatuses =
       allowedTransitions[
@@ -1776,7 +1814,6 @@ export async function changeTicketStatus({
     let closedAt =
       current.closed_at;
 
-    // Quando resolver
     if (
       status === "RESOLVED"
     ) {
@@ -1787,7 +1824,6 @@ export async function changeTicketStatus({
         null;
     }
 
-    // Quando fechar
     if (
       status === "CLOSED"
     ) {
@@ -1795,7 +1831,6 @@ export async function changeTicketStatus({
         new Date();
     }
 
-    // Quando reabrir
     if (
       status === "IN_PROGRESS" &&
       (
@@ -1851,7 +1886,6 @@ export async function changeTicketStatus({
           status,
           resolvedAt,
           closedAt,
-
           ticketId,
           companyId,
         ]
@@ -1891,9 +1925,36 @@ export async function changeTicketStatus({
       ]
     );
 
-    await client.query(
-      "COMMIT"
-    );
+    // ======================================================
+    // NOTIFICATION - RESOLVED
+    // ======================================================
+
+    if (
+      status === "RESOLVED" &&
+      current.requester_id !==
+        authenticatedUserId
+    ) {
+      await createNotificationWithClient(
+        client,
+        {
+          companyId,
+
+          userId:
+            current.requester_id,
+
+          type:
+            "TICKET_RESOLVED",
+
+          title:
+            "Ticket resolvido",
+
+          message:
+            `O ticket ${current.ticket_number} foi marcado como resolvido.`,
+        }
+      );
+    }
+
+    await client.query("COMMIT");
 
     const ticket =
       result.rows[0];
@@ -1928,23 +1989,9 @@ export async function changeTicketStatus({
   }
 }
 
-interface DatabaseTicketComment {
-  id: string;
-
-  company_id: string;
-  ticket_id: string;
-  user_id: string;
-
-  user_name: string;
-  user_role: UserRole;
-
-  content: string;
-
-  is_internal: boolean;
-
-  created_at: Date;
-  updated_at: Date;
-}
+// ======================================================
+// LIST COMMENTS
+// ======================================================
 
 interface ListTicketCommentsParams {
   ticketId: string;
@@ -1961,10 +2008,6 @@ export async function listTicketComments({
   authenticatedUserId,
   authenticatedUserRole,
 }: ListTicketCommentsParams) {
-  // ======================================================
-  // VALIDAR ACESSO AO TICKET
-  // ======================================================
-
   const ticket =
     await getTicketById({
       ticketId,
@@ -1983,16 +2026,12 @@ export async function listTicketComments({
     );
   }
 
-  // ======================================================
-  // FILTROS
-  // ======================================================
-
   const conditions = [
     "tc.ticket_id = $1",
     "tc.company_id = $2",
   ];
 
-  // REQUESTER nunca vê notas internas
+  // REQUESTER nunca vê notas internas.
   if (
     authenticatedUserRole ===
     "REQUESTER"
@@ -2001,10 +2040,6 @@ export async function listTicketComments({
       "tc.is_internal = FALSE"
     );
   }
-
-  // ======================================================
-  // COMMENTS
-  // ======================================================
 
   const result =
     await pool.query<DatabaseTicketComment>(
@@ -2078,6 +2113,10 @@ export async function listTicketComments({
   );
 }
 
+// ======================================================
+// CREATE COMMENT
+// ======================================================
+
 interface CreateTicketCommentParams
   extends CreateTicketCommentInput {
   ticketId: string;
@@ -2097,167 +2136,237 @@ export async function createTicketComment({
   content,
   isInternal,
 }: CreateTicketCommentParams) {
-  // ======================================================
-  // VALIDAR ACESSO AO TICKET
-  // ======================================================
+  const client =
+    await pool.connect();
 
-  const ticket =
-    await getTicketById({
-      ticketId,
-      companyId,
+  try {
+    await client.query("BEGIN");
 
-      userId:
-        authenticatedUserId,
+    // ======================================================
+    // ACCESS
+    // ======================================================
 
-      role:
-        authenticatedUserRole,
-    });
+    const ticket =
+      await findAccessibleTicket(
+        client,
+        {
+          ticketId,
+          companyId,
 
-  if (!ticket) {
-    throw new Error(
-      "TICKET_NOT_FOUND"
-    );
-  }
+          userId:
+            authenticatedUserId,
 
-  // ======================================================
-  // REQUESTER NÃO PODE CRIAR NOTA INTERNA
-  // ======================================================
+          role:
+            authenticatedUserRole,
+        }
+      );
 
-  if (
-    authenticatedUserRole ===
-      "REQUESTER" &&
-    isInternal
-  ) {
-    throw new Error(
-      "INTERNAL_COMMENT_FORBIDDEN"
-    );
-  }
+    if (!ticket) {
+      throw new Error(
+        "TICKET_NOT_FOUND"
+      );
+    }
 
-  // ======================================================
-  // INSERT COMMENT
-  // ======================================================
+    // ======================================================
+    // INTERNAL COMMENT
+    // ======================================================
 
-  const result =
-    await pool.query<DatabaseTicketComment>(
-      `
-        WITH inserted_comment AS (
-          INSERT INTO ticket_comments (
-            company_id,
-            ticket_id,
-            user_id,
-            content,
-            is_internal
+    if (
+      authenticatedUserRole ===
+        "REQUESTER" &&
+      isInternal
+    ) {
+      throw new Error(
+        "INTERNAL_COMMENT_FORBIDDEN"
+      );
+    }
+
+    // ======================================================
+    // INSERT COMMENT
+    // ======================================================
+
+    const result =
+      await client.query<DatabaseTicketComment>(
+        `
+          WITH inserted_comment AS (
+            INSERT INTO ticket_comments (
+              company_id,
+              ticket_id,
+              user_id,
+              content,
+              is_internal
+            )
+
+            VALUES (
+              $1,
+              $2,
+              $3,
+              $4,
+              $5
+            )
+
+            RETURNING
+              id,
+              company_id,
+              ticket_id,
+              user_id,
+              content,
+              is_internal,
+              created_at,
+              updated_at
           )
 
-          VALUES (
-            $1,
-            $2,
-            $3,
-            $4,
-            $5
-          )
+          SELECT
+            ic.id,
 
-          RETURNING
-            id,
-            company_id,
-            ticket_id,
-            user_id,
-            content,
-            is_internal,
-            created_at,
-            updated_at
-        )
+            ic.company_id,
+            ic.ticket_id,
+            ic.user_id,
 
-        SELECT
-          ic.id,
+            u.name AS user_name,
+            u.role AS user_role,
 
-          ic.company_id,
-          ic.ticket_id,
-          ic.user_id,
+            ic.content,
+            ic.is_internal,
 
-          u.name AS user_name,
-          u.role AS user_role,
+            ic.created_at,
+            ic.updated_at
 
-          ic.content,
-          ic.is_internal,
+          FROM inserted_comment ic
 
-          ic.created_at,
-          ic.updated_at
+          INNER JOIN users u
+            ON u.id = ic.user_id
+            AND u.company_id =
+                ic.company_id;
+        `,
+        [
+          companyId,
+          ticketId,
+          authenticatedUserId,
+          content,
+          isInternal,
+        ]
+      );
 
-        FROM inserted_comment ic
+    const comment =
+      result.rows[0];
 
-        INNER JOIN users u
-          ON u.id = ic.user_id
-          AND u.company_id =
-              ic.company_id;
-      `,
-      [
-        companyId,
-        ticketId,
-        authenticatedUserId,
-        content,
-        isInternal,
-      ]
-    );
+    // ======================================================
+    // NOTIFICATIONS
+    // Somente comentários públicos.
+    // ======================================================
 
-  const comment =
-    result.rows[0];
+    if (!isInternal) {
+      // ----------------------------------------------------
+      // REQUESTER comentou
+      // → notificar AGENT responsável
+      // ----------------------------------------------------
 
-  return {
-    id:
-      comment.id,
+      if (
+        authenticatedUserRole ===
+          "REQUESTER" &&
+        ticket.assignee_id &&
+        ticket.assignee_id !==
+          authenticatedUserId
+      ) {
+        await createNotificationWithClient(
+          client,
+          {
+            companyId,
 
-    ticketId:
-      comment.ticket_id,
+            userId:
+              ticket.assignee_id,
 
-    author: {
+            type:
+              "TICKET_COMMENTED",
+
+            title:
+              "Novo comentário no ticket",
+
+            message:
+              `O solicitante adicionou um comentário no ticket ${ticket.ticket_number}.`,
+          }
+        );
+      }
+
+      // ----------------------------------------------------
+      // ADMIN ou AGENT comentou
+      // → notificar REQUESTER
+      // ----------------------------------------------------
+
+      if (
+        authenticatedUserRole !==
+          "REQUESTER" &&
+        ticket.requester_id !==
+          authenticatedUserId
+      ) {
+        await createNotificationWithClient(
+          client,
+          {
+            companyId,
+
+            userId:
+              ticket.requester_id,
+
+            type:
+              "TICKET_COMMENTED",
+
+            title:
+              "Nova atualização no chamado",
+
+            message:
+              `Um novo comentário foi adicionado ao ticket ${ticket.ticket_number}.`,
+          }
+        );
+      }
+    }
+
+    await client.query("COMMIT");
+
+    return {
       id:
-        comment.user_id,
+        comment.id,
 
-      name:
-        comment.user_name,
+      ticketId:
+        comment.ticket_id,
 
-      role:
-        comment.user_role,
-    },
+      author: {
+        id:
+          comment.user_id,
 
-    content:
-      comment.content,
+        name:
+          comment.user_name,
 
-    isInternal:
-      comment.is_internal,
+        role:
+          comment.user_role,
+      },
 
-    createdAt:
-      comment.created_at,
+      content:
+        comment.content,
 
-    updatedAt:
-      comment.updated_at,
-  };
+      isInternal:
+        comment.is_internal,
+
+      createdAt:
+        comment.created_at,
+
+      updatedAt:
+        comment.updated_at,
+    };
+  } catch (error) {
+    await client.query(
+      "ROLLBACK"
+    );
+
+    throw error;
+  } finally {
+    client.release();
+  }
 }
 
-  // ======================================================
-  // INSERT COMMENT + AUTHOR
-  // ======================================================
-
-  
-
-interface DatabaseTicketHistory {
-  id: string;
-
-  company_id: string;
-  ticket_id: string;
-
-  user_id: string | null;
-  user_name: string | null;
-  user_role: UserRole | null;
-
-  action: string;
-
-  old_value: string | null;
-  new_value: string | null;
-
-  created_at: Date;
-}
+// ======================================================
+// LIST HISTORY
+// ======================================================
 
 interface ListTicketHistoryParams {
   ticketId: string;
@@ -2274,10 +2383,6 @@ export async function listTicketHistory({
   authenticatedUserId,
   authenticatedUserRole,
 }: ListTicketHistoryParams) {
-  // ======================================================
-  // VALIDAR ACESSO
-  // ======================================================
-
   const ticket =
     await getTicketById({
       ticketId,
@@ -2295,10 +2400,6 @@ export async function listTicketHistory({
       "TICKET_NOT_FOUND"
     );
   }
-
-  // ======================================================
-  // HISTORY
-  // ======================================================
 
   const result =
     await pool.query<DatabaseTicketHistory>(
@@ -2375,4 +2476,3 @@ export async function listTicketHistory({
     })
   );
 }
-
