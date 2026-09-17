@@ -25,6 +25,7 @@ import { ticketRoutes } from "./routes/ticket.routes";
 import { notificationRoutes } from "./routes/notification.routes";
 
 import { dashboardRoutes } from "./routes/dashboard.routes";
+import { companyRoutes } from "./routes/company.routes";
 
 // ======================================================
 // MIDDLEWARES
@@ -153,6 +154,8 @@ app.use("/api/v1/notifications", notificationRoutes);
 // ======================================================
 
 app.use("/api/v1/dashboard", dashboardRoutes);
+
+app.use("/api/v1/companies", companyRoutes);
 
 // ======================================================
 // 404
