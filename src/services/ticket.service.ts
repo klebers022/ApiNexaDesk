@@ -337,7 +337,7 @@ export async function listTickets({
 
     conditions.push(`
       (
-        t.ticket_number ILIKE $${position}
+        CAST(t.ticket_number AS TEXT) ILIKE $${position}
         OR t.title ILIKE $${position}
         OR t.description ILIKE $${position}
       )
