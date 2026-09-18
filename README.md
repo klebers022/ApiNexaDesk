@@ -35,7 +35,7 @@ docker build --tag nexadesk-api:local .
 
 As migrations ativas estão em [`supabase/migrations`](supabase/migrations). A primeira cria todo o schema em um banco vazio; a segunda restringe o acesso direto pelo Data API e acrescenta índices de cobertura às chaves estrangeiras compostas.
 
-O projeto Supabase atual recebeu o schema inicial manualmente antes de ter histórico. As duas migrations foram registradas como baseline remota e não devem ser reaplicadas nele. Veja [`supabase/README.md`](supabase/README.md) para detalhess.
+O projeto Supabase atual recebeu o schema inicial manualmente antes de ter histórico. As duas migrations foram registradas como baseline remota e não devem ser reaplicadas nele. Veja [`supabase/README.md`](supabase/README.md) para detalhes.
 
 ## Segurança
 
