@@ -9,7 +9,7 @@ export async function healthController(
 
   return response.status(200).json({
     data: {
-      status: "deploy funcioanando automaticamente",
+      status: "ok",
       database: "connected",
       timestamp: database.databaseTime,
     },
