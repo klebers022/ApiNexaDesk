@@ -39,4 +39,4 @@ O projeto Supabase atual recebeu o schema inicial manualmente antes de ter hist�
 
 ## Segurança
 
-O front-end deve chamar somente esta API. Não exponha a senha do banco, a chave `service_role` ou qualquer credencial administrativa no navegador. O RLS e a revogação de permissões para `anon` e `authenticated` bloqueiam acesso direto às tabelas públicas.
+O front-end deve chamar somente esta API. Não exponha a senha do banco, a chave `service_role` ou qualquer credencial administrativa no navegador. O RLS e a revogação de permissões para `anon` e `authenticated` bloqueiam acesso direto às tabelas públicas. 
