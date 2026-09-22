@@ -99,6 +99,10 @@ const envSchema = z.object({
     .default(
       "1h"
     ),
+
+  GEMINI_API_KEY: z
+    .string()
+    .optional(),
 });
 
 // ======================================================

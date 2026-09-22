@@ -6,13 +6,14 @@ import { env } from "../config/env";
 
 interface DatabaseUser {
   id: string;
-  company_id: string;
+  company_id: string | null;
   customer_id: string | null;
   name: string;
   email: string;
   password_hash: string;
-  role: "ADMIN" | "AGENT" | "REQUESTER";
+  role: "SUPER_ADMIN" | "COMPANY_ADMIN" | "ANALYST" | "REQUESTER";
   status: "ACTIVE" | "INACTIVE";
+  must_change_password: boolean;
 }
 
 interface LoginData {
@@ -34,7 +35,8 @@ export async function login({
         email,
         password_hash,
         role,
-        status
+        status,
+        must_change_password
       FROM users
       WHERE LOWER(email) = LOWER($1)
       LIMIT 1;
@@ -68,7 +70,7 @@ export async function login({
 
   const token = jwt.sign(
     {
-      companyId: user.company_id,
+      companyId: user.company_id ?? "",
       role: user.role,
     },
     env.JWT_SECRET,
@@ -89,6 +91,7 @@ export async function login({
       email: user.email,
       role: user.role,
       status: user.status,
+      mustChangePassword: user.must_change_password,
     },
   };
 }

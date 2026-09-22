@@ -1,0 +1,1015 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>NexaDesk • AI Chatbot & Triagem Inteligente</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg-base: #0a0e17;
+      --bg-surface: #111827;
+      --bg-card: rgba(17, 24, 39, 0.7);
+      --bg-glass: rgba(30, 41, 59, 0.5);
+      --border-subtle: rgba(255, 255, 255, 0.08);
+      --border-focus: rgba(99, 102, 241, 0.4);
+      --text-primary: #f8fafc;
+      --text-secondary: #94a3b8;
+      --text-muted: #64748b;
+      --primary: #6366f1;
+      --primary-hover: #4f46e5;
+      --accent-cyan: #06b6d4;
+      --accent-emerald: #10b981;
+      --accent-amber: #f59e0b;
+      --accent-rose: #ef4444;
+      --shadow-glow: 0 0 25px rgba(99, 102, 241, 0.2);
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      font-family: 'Plus Jakarta Sans', sans-serif;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    body {
+      background-color: var(--bg-base);
+      color: var(--text-primary);
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      background-image: 
+        radial-gradient(circle at 15% 15%, rgba(99, 102, 241, 0.12) 0%, transparent 40%),
+        radial-gradient(circle at 85% 85%, rgba(6, 182, 212, 0.08) 0%, transparent 40%);
+      background-attachment: fixed;
+    }
+
+    /* HEADER */
+    header {
+      height: 72px;
+      border-bottom: 1px solid var(--border-subtle);
+      background: rgba(11, 15, 25, 0.8);
+      backdrop-filter: blur(16px);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 2rem;
+      position: sticky;
+      top: 0;
+      z-index: 50;
+    }
+
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      text-decoration: none;
+    }
+
+    .brand-icon {
+      width: 42px;
+      height: 42px;
+      background: linear-gradient(135deg, #6366f1, #06b6d4);
+      border-radius: 12px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      box-shadow: 0 0 15px rgba(99, 102, 241, 0.4);
+    }
+
+    .brand-icon svg {
+      width: 24px;
+      height: 24px;
+      fill: #ffffff;
+    }
+
+    .brand-text h1 {
+      font-size: 1.25rem;
+      font-weight: 800;
+      letter-spacing: -0.02em;
+      background: linear-gradient(to right, #ffffff, #94a3b8);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+
+    .brand-text span {
+      font-size: 0.75rem;
+      color: var(--accent-cyan);
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+    }
+
+    .header-actions {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+    }
+
+    .engine-status {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      background: rgba(16, 185, 129, 0.1);
+      border: 1px solid rgba(16, 185, 129, 0.25);
+      color: #34d399;
+      font-size: 0.8rem;
+      font-weight: 600;
+      padding: 6px 14px;
+      border-radius: 9999px;
+    }
+
+    .status-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background-color: #10b981;
+      box-shadow: 0 0 8px #10b981;
+      animation: pulse 2s infinite;
+    }
+
+    @keyframes pulse {
+      0% { opacity: 1; transform: scale(1); }
+      50% { opacity: 0.5; transform: scale(0.9); }
+      100% { opacity: 1; transform: scale(1); }
+    }
+
+    .btn-token {
+      background: var(--bg-glass);
+      border: 1px solid var(--border-subtle);
+      color: var(--text-secondary);
+      font-size: 0.8rem;
+      font-weight: 600;
+      padding: 8px 14px;
+      border-radius: 8px;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+
+    .btn-token:hover {
+      border-color: var(--primary);
+      color: var(--text-primary);
+    }
+
+    /* MAIN CONTAINER */
+    .app-container {
+      flex: 1;
+      max-width: 1440px;
+      width: 100%;
+      margin: 0 auto;
+      padding: 1.5rem;
+      display: grid;
+      grid-template-columns: 1fr 380px;
+      gap: 1.5rem;
+      height: calc(100vh - 72px);
+    }
+
+    @media (max-width: 960px) {
+      .app-container {
+        grid-template-columns: 1fr;
+        height: auto;
+      }
+    }
+
+    /* CHAT PANEL */
+    .chat-panel {
+      background: var(--bg-card);
+      border: 1px solid var(--border-subtle);
+      border-radius: 20px;
+      backdrop-filter: blur(16px);
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+      box-shadow: 0 10px 30px -10px rgba(0, 0, 0, 0.5);
+    }
+
+    .chat-header {
+      padding: 1rem 1.5rem;
+      border-bottom: 1px solid var(--border-subtle);
+      background: rgba(17, 24, 39, 0.4);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .chat-title {
+      font-size: 0.95rem;
+      font-weight: 600;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .chat-title span {
+      color: var(--accent-cyan);
+    }
+
+    .deflection-badge {
+      font-size: 0.75rem;
+      background: rgba(99, 102, 241, 0.15);
+      border: 1px solid rgba(99, 102, 241, 0.3);
+      color: #a5b4fc;
+      padding: 4px 10px;
+      border-radius: 6px;
+      font-weight: 600;
+    }
+
+    .chat-stream {
+      flex: 1;
+      padding: 1.5rem;
+      overflow-y: auto;
+      display: flex;
+      flex-direction: column;
+      gap: 1.25rem;
+      scroll-behavior: smooth;
+    }
+
+    /* MESSAGE BUBBLES */
+    .msg-row {
+      display: flex;
+      gap: 12px;
+      max-width: 85%;
+      animation: fadeIn 0.3s ease-in-out;
+    }
+
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(8px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    .msg-row.user {
+      align-self: flex-end;
+      flex-direction: row-reverse;
+    }
+
+    .msg-row.bot {
+      align-self: flex-start;
+    }
+
+    .avatar {
+      width: 36px;
+      height: 36px;
+      border-radius: 10px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+      font-size: 0.9rem;
+      font-weight: 700;
+    }
+
+    .avatar.bot {
+      background: linear-gradient(135deg, #6366f1, #06b6d4);
+      color: #fff;
+      box-shadow: 0 0 10px rgba(99, 102, 241, 0.4);
+    }
+
+    .avatar.user {
+      background: #334155;
+      color: #f1f5f9;
+    }
+
+    .bubble {
+      padding: 1rem 1.25rem;
+      border-radius: 16px;
+      font-size: 0.92rem;
+      line-height: 1.55;
+    }
+
+    .msg-row.user .bubble {
+      background: linear-gradient(135deg, #4f46e5, #6366f1);
+      color: #ffffff;
+      border-bottom-right-radius: 4px;
+      box-shadow: 0 4px 15px rgba(99, 102, 241, 0.3);
+    }
+
+    .msg-row.bot .bubble {
+      background: var(--bg-surface);
+      border: 1px solid var(--border-subtle);
+      color: var(--text-primary);
+      border-bottom-left-radius: 4px;
+    }
+
+    .bubble p {
+      margin-bottom: 0.6rem;
+    }
+
+    .bubble p:last-child {
+      margin-bottom: 0;
+    }
+
+    .bubble ul, .bubble ol {
+      margin: 0.5rem 0 0.75rem 1.25rem;
+    }
+
+    .bubble li {
+      margin-bottom: 0.35rem;
+    }
+
+    .bubble code {
+      background: rgba(0, 0, 0, 0.3);
+      padding: 2px 6px;
+      border-radius: 4px;
+      font-size: 0.85em;
+      color: var(--accent-cyan);
+    }
+
+    /* ACTION BUTTONS INSIDE BOT BUBBLES */
+    .msg-actions {
+      margin-top: 1rem;
+      padding-top: 0.85rem;
+      border-top: 1px solid var(--border-subtle);
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+    }
+
+    .btn-action {
+      font-size: 0.82rem;
+      font-weight: 600;
+      padding: 8px 14px;
+      border-radius: 8px;
+      border: none;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      transition: all 0.2s;
+    }
+
+    .btn-resolve {
+      background: rgba(16, 185, 129, 0.15);
+      border: 1px solid rgba(16, 185, 129, 0.3);
+      color: #34d399;
+    }
+
+    .btn-resolve:hover {
+      background: #10b981;
+      color: #ffffff;
+      box-shadow: 0 0 15px rgba(16, 185, 129, 0.4);
+    }
+
+    .btn-ticket {
+      background: rgba(99, 102, 241, 0.15);
+      border: 1px solid rgba(99, 102, 241, 0.3);
+      color: #a5b4fc;
+    }
+
+    .btn-ticket:hover {
+      background: #6366f1;
+      color: #ffffff;
+      box-shadow: 0 0 15px rgba(99, 102, 241, 0.4);
+    }
+
+    /* SUGGESTIONS PILLS */
+    .quick-suggestions {
+      padding: 0.75rem 1.5rem;
+      display: flex;
+      gap: 8px;
+      overflow-x: auto;
+      background: rgba(11, 15, 25, 0.5);
+      border-top: 1px solid var(--border-subtle);
+    }
+
+    .suggestion-pill {
+      font-size: 0.78rem;
+      background: var(--bg-glass);
+      border: 1px solid var(--border-subtle);
+      color: var(--text-secondary);
+      padding: 6px 12px;
+      border-radius: 9999px;
+      white-space: nowrap;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+
+    .suggestion-pill:hover {
+      border-color: var(--primary);
+      color: var(--text-primary);
+      background: rgba(99, 102, 241, 0.1);
+    }
+
+    /* INPUT BAR */
+    .chat-input-wrapper {
+      padding: 1.25rem 1.5rem;
+      background: rgba(17, 24, 39, 0.8);
+      border-top: 1px solid var(--border-subtle);
+      display: flex;
+      gap: 12px;
+      align-items: center;
+    }
+
+    .chat-input {
+      flex: 1;
+      background: rgba(11, 15, 25, 0.7);
+      border: 1px solid var(--border-subtle);
+      border-radius: 12px;
+      padding: 12px 16px;
+      color: var(--text-primary);
+      font-size: 0.95rem;
+      outline: none;
+      transition: border-color 0.2s;
+    }
+
+    .chat-input:focus {
+      border-color: var(--primary);
+      box-shadow: 0 0 0 2px rgba(99, 102, 241, 0.2);
+    }
+
+    .btn-send {
+      width: 46px;
+      height: 46px;
+      border-radius: 12px;
+      background: linear-gradient(135deg, #6366f1, #4f46e5);
+      border: none;
+      color: #ffffff;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      box-shadow: 0 4px 12px rgba(99, 102, 241, 0.3);
+      transition: all 0.2s;
+    }
+
+    .btn-send:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 6px 16px rgba(99, 102, 241, 0.5);
+    }
+
+    .btn-send:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+      transform: none;
+    }
+
+    /* RIGHT PANEL: REAL-TIME HUD */
+    .hud-panel {
+      display: flex;
+      flex-direction: column;
+      gap: 1.25rem;
+    }
+
+    .hud-card {
+      background: var(--bg-card);
+      border: 1px solid var(--border-subtle);
+      border-radius: 20px;
+      backdrop-filter: blur(16px);
+      padding: 1.25rem;
+      box-shadow: 0 10px 30px -10px rgba(0, 0, 0, 0.5);
+    }
+
+    .hud-card-title {
+      font-size: 0.8rem;
+      font-weight: 700;
+      color: var(--text-muted);
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      margin-bottom: 1rem;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .hud-metric {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    .metric-item {
+      background: rgba(11, 15, 25, 0.6);
+      border: 1px solid var(--border-subtle);
+      border-radius: 12px;
+      padding: 12px;
+    }
+
+    .metric-label {
+      font-size: 0.75rem;
+      color: var(--text-muted);
+      margin-bottom: 4px;
+    }
+
+    .metric-value {
+      font-size: 0.95rem;
+      font-weight: 600;
+      color: var(--text-primary);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .badge-priority {
+      font-size: 0.72rem;
+      font-weight: 700;
+      padding: 4px 10px;
+      border-radius: 6px;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
+
+    .badge-priority.URGENT {
+      background: rgba(239, 68, 68, 0.2);
+      border: 1px solid rgba(239, 68, 68, 0.4);
+      color: #f87171;
+      animation: pulse 1.5s infinite;
+    }
+
+    .badge-priority.HIGH {
+      background: rgba(245, 158, 11, 0.2);
+      border: 1px solid rgba(245, 158, 11, 0.4);
+      color: #fbbf24;
+    }
+
+    .badge-priority.MEDIUM {
+      background: rgba(59, 130, 246, 0.2);
+      border: 1px solid rgba(59, 130, 246, 0.4);
+      color: #60a5fa;
+    }
+
+    .badge-priority.LOW {
+      background: rgba(16, 185, 129, 0.2);
+      border: 1px solid rgba(16, 185, 129, 0.4);
+      color: #34d399;
+    }
+
+    /* PROGRESS BAR FOR CONFIDENCE */
+    .confidence-bar-bg {
+      width: 100%;
+      height: 6px;
+      background: rgba(255, 255, 255, 0.1);
+      border-radius: 9999px;
+      overflow: hidden;
+      margin-top: 6px;
+    }
+
+    .confidence-bar-fill {
+      height: 100%;
+      background: linear-gradient(to right, #6366f1, #06b6d4);
+      border-radius: 9999px;
+      width: 0%;
+      transition: width 0.6s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+
+    /* TYPING INDICATOR */
+    .typing-indicator {
+      display: flex;
+      align-items: center;
+      gap: 5px;
+      padding: 12px 16px;
+    }
+
+    .typing-dot {
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+      background: var(--accent-cyan);
+      animation: typing 1.4s infinite ease-in-out both;
+    }
+
+    .typing-dot:nth-child(1) { animation-delay: -0.32s; }
+    .typing-dot:nth-child(2) { animation-delay: -0.16s; }
+
+    @keyframes typing {
+      0%, 80%, 100% { transform: scale(0); opacity: 0.4; }
+      40% { transform: scale(1); opacity: 1; }
+    }
+
+    /* MODAL */
+    .modal-overlay {
+      position: fixed;
+      top: 0; left: 0; right: 0; bottom: 0;
+      background: rgba(0, 0, 0, 0.7);
+      backdrop-filter: blur(8px);
+      display: none;
+      align-items: center;
+      justify-content: center;
+      z-index: 100;
+    }
+
+    .modal {
+      background: var(--bg-surface);
+      border: 1px solid var(--border-subtle);
+      border-radius: 16px;
+      width: 90%;
+      max-width: 440px;
+      padding: 1.5rem;
+    }
+
+    .modal h2 {
+      font-size: 1.1rem;
+      margin-bottom: 1rem;
+    }
+
+    .modal input {
+      width: 100%;
+      padding: 10px 14px;
+      background: var(--bg-base);
+      border: 1px solid var(--border-subtle);
+      border-radius: 8px;
+      color: #fff;
+      margin-bottom: 1rem;
+    }
+
+    .modal-buttons {
+      display: flex;
+      justify-content: flex-end;
+      gap: 10px;
+    }
+  </style>
+</head>
+<body>
+
+  <!-- HEADER -->
+  <header>
+    <a href="#" class="brand">
+      <div class="brand-icon">
+        <svg viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 17.93c-3.95-.49-7-3.85-7-7.93 0-.62.08-1.21.21-1.79L9 15v1c0 1.1.9 2 2 2v1.93zm6.9-2.54c-.26-.81-1-1.39-1.9-1.39h-1v-3c0-.55-.45-1-1-1H8v-2h2c.55 0 1-.45 1-1V7h2c1.1 0 2-.9 2-2v-.41c2.93 1.19 5 4.06 5 7.41 0 2.08-.8 3.97-2.1 5.39z"/></svg>
+      </div>
+      <div class="brand-text">
+        <h1>NexaDesk AI</h1>
+        <span>Assistente & Triagem Inteligente</span>
+      </div>
+    </a>
+
+    <div class="header-actions">
+      <div class="engine-status" title="Motor ativo com suporte a LLM Google Gemini e Fallback Heurístico Zero-Crash">
+        <div class="status-dot"></div>
+        <span id="activeEngineText">AI Engine Ativo</span>
+      </div>
+      <button class="btn-token" id="btnConfig">🔑 Configurar Token</button>
+    </div>
+  </header>
+
+  <!-- APP CONTAINER -->
+  <main class="app-container">
+    
+    <!-- CHAT INTERFACE -->
+    <section class="chat-panel">
+      <div class="chat-header">
+        <div class="chat-title">
+          <span>●</span> Atendimento & Autoatendimento Self-Service
+        </div>
+        <div class="deflection-badge" id="deflectionBadge">
+          0 Chamados Evitados
+        </div>
+      </div>
+
+      <!-- STREAM DE MENSAGENS -->
+      <div class="chat-stream" id="chatStream">
+        <!-- Boas-vindas -->
+        <div class="msg-row bot">
+          <div class="avatar bot">🤖</div>
+          <div class="bubble">
+            <p><strong>Olá! Eu sou o assistente inteligente do NexaDesk.</strong></p>
+            <p>Estou aqui para agilizar o seu suporte. Posso diagnosticar seu problema, buscar soluções comprovadas na nossa base histórica ou já registrar um chamado categorizado para a equipe técnica.</p>
+            <p style="color: var(--text-muted); font-size: 0.85em;">💡 Você pode descrever sua dúvida abaixo ou clicar em uma das sugestões rápidas.</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- PILLS DE SUGESTÃO -->
+      <div class="quick-suggestions">
+        <button class="suggestion-pill" onclick="sendQuickMessage('Como faço para redefinir a minha senha de acesso?')">🔑 Redefinição de Senha</button>
+        <button class="suggestion-pill" onclick="sendQuickMessage('O servidor de banco de dados parou e está fora do ar com erro 500 para todos!')">🚨 Servidor Fora do Ar</button>
+        <button class="suggestion-pill" onclick="sendQuickMessage('Estamos com erro no faturamento ao emitir boletos')">💳 Erro no Faturamento</button>
+        <button class="suggestion-pill" onclick="sendQuickMessage('Minha VPN da empresa não está conectando na rede')">🌐 Falha na Conexão VPN</button>
+      </div>
+
+      <!-- INPUT BAR -->
+      <div class="chat-input-wrapper">
+        <input 
+          type="text" 
+          id="chatInput" 
+          class="chat-input" 
+          placeholder="Descreva seu problema ou dúvida com o sistema..." 
+          autocomplete="off"
+        />
+        <button class="btn-send" id="btnSend" title="Enviar Mensagem">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="22" y1="2" x2="11" y2="13"></line><polygon points="22 2 15 22 11 13 2 9 22 2"></polygon></svg>
+        </button>
+      </div>
+    </section>
+
+    <!-- RIGHT HUD (REAL-TIME TRIAGE DIAGNOSTICS) -->
+    <aside class="hud-panel">
+      <!-- TRIAGEM CARD -->
+      <div class="hud-card">
+        <div class="hud-card-title">
+          <span>Diagnóstico de Triagem</span>
+          <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"></path></svg>
+        </div>
+
+        <div class="hud-metric">
+          <div class="metric-item">
+            <div class="metric-label">Categoria Identificada</div>
+            <div class="metric-value">
+              <span id="hudCategory" style="color: var(--accent-cyan);">Aguardando mensagem...</span>
+            </div>
+          </div>
+
+          <div class="metric-item">
+            <div class="metric-label">Prioridade Sugerida (SLA)</div>
+            <div class="metric-value">
+              <span id="hudPriorityBadge" class="badge-priority LOW">NORMAL</span>
+            </div>
+          </div>
+
+          <div class="metric-item">
+            <div class="metric-label">Grau de Confiança da Análise</div>
+            <div class="metric-value">
+              <span id="hudConfidenceText">0%</span>
+            </div>
+            <div class="confidence-bar-bg">
+              <div class="confidence-bar-fill" id="hudConfidenceBar"></div>
+            </div>
+          </div>
+
+          <div class="metric-item">
+            <div class="metric-label">Motor de Inteligência</div>
+            <div class="metric-value" style="font-size: 0.85rem; color: var(--text-secondary);">
+              <span id="hudSource">Híbrido (Gemini / Heurístico)</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- BASE HISTÓRICA CARD -->
+      <div class="hud-card">
+        <div class="hud-card-title">
+          <span>Base Histórica (RAG)</span>
+          <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"></path><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"></path></svg>
+        </div>
+
+        <div id="hudSolutionsList" style="font-size: 0.85rem; color: var(--text-secondary); line-height: 1.4;">
+          Nenhum chamado correlacionado no momento. As soluções validadas pela equipe de suporte aparecerão aqui.
+        </div>
+      </div>
+
+      <!-- TICKET DEFLECTION SUMMARY -->
+      <div class="hud-card" style="background: linear-gradient(135deg, rgba(16, 185, 129, 0.1), rgba(6, 182, 212, 0.05)); border-color: rgba(16, 185, 129, 0.2);">
+        <div class="hud-card-title" style="color: #34d399;">
+          <span>Ticket Deflection (Métrica)</span>
+          <span>🛡️</span>
+        </div>
+        <p style="font-size: 0.82rem; color: var(--text-secondary);">
+          O autoatendimento evita a criação desnecessária de tickets para dúvidas frequentes, liberando os analistas para incidentes críticos.
+        </p>
+      </div>
+    </aside>
+
+  </main>
+
+  <!-- MODAL TOKEN -->
+  <div class="modal-overlay" id="modalConfig">
+    <div class="modal">
+      <h2>Configurações do Chatbot</h2>
+      <p style="font-size: 0.85rem; color: var(--text-secondary); margin-bottom: 12px;">
+        Insira o token JWT de um usuário da API NexaDesk para testar com chamados e categorias reais do seu banco.
+      </p>
+      <input type="text" id="tokenInput" placeholder="Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..." />
+      <div class="modal-buttons">
+        <button class="btn-token" onclick="closeModal()">Cancelar</button>
+        <button class="btn-token" style="background: var(--primary); color: #fff;" onclick="saveToken()">Salvar</button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    let authToken = localStorage.getItem("NEXADESK_AUTH_TOKEN") || "";
+    let deflectionCount = 0;
+    let lastClassification = null;
+    let lastUserMessage = "";
+
+    const chatStream = document.getElementById("chatStream");
+    const chatInput = document.getElementById("chatInput");
+    const btnSend = document.getElementById("btnSend");
+    const hudCategory = document.getElementById("hudCategory");
+    const hudPriorityBadge = document.getElementById("hudPriorityBadge");
+    const hudConfidenceText = document.getElementById("hudConfidenceText");
+    const hudConfidenceBar = document.getElementById("hudConfidenceBar");
+    const hudSource = document.getElementById("hudSource");
+    const hudSolutionsList = document.getElementById("hudSolutionsList");
+    const deflectionBadge = document.getElementById("deflectionBadge");
+
+    // Modal
+    const modalConfig = document.getElementById("modalConfig");
+    const tokenInput = document.getElementById("tokenInput");
+    document.getElementById("btnConfig").addEventListener("click", () => {
+      tokenInput.value = authToken;
+      modalConfig.style.display = "flex";
+    });
+    function closeModal() { modalConfig.style.display = "none"; }
+    function saveToken() {
+      authToken = tokenInput.value.trim().replace(/^Bearer\s+/i, "");
+      localStorage.setItem("NEXADESK_AUTH_TOKEN", authToken);
+      closeModal();
+      appendBotMessage("🔑 Token de autenticação atualizado com sucesso!");
+    }
+
+    // Scroll
+    function scrollToBottom() {
+      chatStream.scrollTop = chatStream.scrollHeight;
+    }
+
+    // Append User Message
+    function appendUserMessage(text) {
+      const row = document.createElement("div");
+      row.className = "msg-row user";
+      row.innerHTML = `
+        <div class="avatar user">👤</div>
+        <div class="bubble"><p>${escapeHtml(text)}</p></div>
+      `;
+      chatStream.appendChild(row);
+      scrollToBottom();
+    }
+
+    // Append Bot Message
+    function appendBotMessage(htmlContent, showActions = false) {
+      const row = document.createElement("div");
+      row.className = "msg-row bot";
+      
+      let actionsHtml = "";
+      if (showActions) {
+        actionsHtml = `
+          <div class="msg-actions">
+            <button class="btn-action btn-resolve" onclick="handleResolve()">
+              ✅ Isso resolveu meu problema!
+            </button>
+            <button class="btn-action btn-ticket" onclick="handleCreateTicket()">
+              🎫 Abrir Chamado Técnico
+            </button>
+          </div>
+        `;
+      }
+
+      row.innerHTML = `
+        <div class="avatar bot">🤖</div>
+        <div class="bubble">
+          <div>${formatMarkdown(htmlContent)}</div>
+          ${actionsHtml}
+        </div>
+      `;
+      chatStream.appendChild(row);
+      scrollToBottom();
+    }
+
+    // Show Typing Indicator
+    function showTyping() {
+      const row = document.createElement("div");
+      row.id = "typingIndicator";
+      row.className = "msg-row bot";
+      row.innerHTML = `
+        <div class="avatar bot">🤖</div>
+        <div class="bubble typing-indicator">
+          <div class="typing-dot"></div>
+          <div class="typing-dot"></div>
+          <div class="typing-dot"></div>
+        </div>
+      `;
+      chatStream.appendChild(row);
+      scrollToBottom();
+    }
+
+    function hideTyping() {
+      const el = document.getElementById("typingIndicator");
+      if (el) el.remove();
+    }
+
+    function escapeHtml(str) {
+      return str.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+    }
+
+    function formatMarkdown(text) {
+      return text
+        .replace(/\*\*(.*?)\*\*/g, "<strong>$1</strong>")
+        .replace(/\*(.*?)\*/g, "<em>$1</em>")
+        .replace(/`([^`]+)`/g, "<code>$1</code>")
+        .replace(/### (.*?)\n/g, "<h3 style='font-size: 1rem; margin: 0.6rem 0 0.3rem 0; color: #38bdf8;'>$1</h3>")
+        .replace(/\n\n/g, "<br/><br/>")
+        .replace(/\n/g, "<br/>");
+    }
+
+    // Update Real-Time HUD
+    function updateHUD(classification, solutions = []) {
+      if (!classification) return;
+      lastClassification = classification;
+
+      hudCategory.textContent = classification.categoryName || "Geral";
+      hudPriorityBadge.textContent = classification.priority;
+      hudPriorityBadge.className = `badge-priority ${classification.priority}`;
+
+      const pct = Math.round(classification.confidence * 100);
+      hudConfidenceText.textContent = `${pct}%`;
+      hudConfidenceBar.style.width = `${pct}%`;
+
+      hudSource.textContent = classification.source === "llm" 
+        ? "✨ Google Gemini LLM" 
+        : "⚡ Motor Heurístico Fallback";
+
+      if (solutions && solutions.length > 0) {
+        hudSolutionsList.innerHTML = solutions.map(s => `
+          <div style="background: rgba(11, 15, 25, 0.6); padding: 8px 10px; border-radius: 8px; margin-bottom: 6px; border: 1px solid var(--border-subtle);">
+            <div style="font-weight: 600; color: var(--text-primary);">#${s.ticketNumber} - ${escapeHtml(s.title)}</div>
+            <div style="font-size: 0.75rem; color: var(--accent-cyan); margin-top: 2px;">Score de similaridade: ${s.score}</div>
+          </div>
+        `).join("");
+      } else {
+        hudSolutionsList.innerHTML = `<span style="color: var(--text-muted);">Nenhum chamado histórico direto localizado para esta dúvida.</span>`;
+      }
+    }
+
+    // Send Message Logic
+    async function sendMessage(text, action = "message") {
+      if (!text.trim()) return;
+
+      if (action === "message") {
+        appendUserMessage(text);
+        lastUserMessage = text;
+      }
+
+      showTyping();
+      btnSend.disabled = true;
+
+      try {
+        const headers = { "Content-Type": "application/json" };
+        if (authToken) {
+          headers["Authorization"] = `Bearer ${authToken}`;
+        }
+
+        const response = await fetch("/api/v1/ai/chat", {
+          method: "POST",
+          headers,
+          body: JSON.stringify({
+            message: text,
+            action,
+            categoryId: lastClassification?.categoryId || undefined,
+          }),
+        });
+
+        hideTyping();
+        btnSend.disabled = false;
+
+        if (response.status === 401) {
+          appendBotMessage(`⚠️ **Autenticação necessária:** Não foi fornecido um token válido da API NexaDesk. Por favor, clique no botão **"Configurar Token"** no topo para informar um token JWT ativo da sua empresa.`);
+          return;
+        }
+
+        const result = await response.json();
+
+        if (result.data) {
+          if (result.data.classification) {
+            updateHUD(result.data.classification, result.data.solutions);
+          }
+
+          if (result.data.action === "resolve") {
+            deflectionCount++;
+            deflectionBadge.textContent = `${deflectionCount} Chamado(s) Evitado(s)`;
+            appendBotMessage(result.data.response, false);
+          } else if (result.data.action === "create_ticket") {
+            appendBotMessage(result.data.response, false);
+          } else {
+            appendBotMessage(result.data.response, true);
+          }
+        } else if (result.error) {
+          appendBotMessage(`❌ ${result.error.message || "Erro ao processar mensagem."}`);
+        }
+      } catch (err) {
+        hideTyping();
+        btnSend.disabled = false;
+        appendBotMessage(`⚠️ Não foi possível se conectar ao servidor da API em <code>/api/v1/ai/chat</code>. Verifique se o servidor está em execução.`);
+      }
+    }
+
+    function sendQuickMessage(text) {
+      chatInput.value = text;
+      handleSend();
+    }
+
+    function handleSend() {
+      const text = chatInput.value.trim();
+      if (!text) return;
+      chatInput.value = "";
+      sendMessage(text, "message");
+    }
+
+    function handleResolve() {
+      sendMessage(lastUserMessage || "Problema solucionado", "resolve");
+    }
+
+    function handleCreateTicket() {
+      sendMessage(lastUserMessage || "Solicito a abertura do chamado", "create_ticket");
+    }
+
+    btnSend.addEventListener("click", handleSend);
+    chatInput.addEventListener("keydown", (e) => {
+      if (e.key === "Enter") {
+        e.preventDefault();
+        handleSend();
+      }
+    });
+  </script>
+</body>
+</html>

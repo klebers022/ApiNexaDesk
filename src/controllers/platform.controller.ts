@@ -1,0 +1,5 @@
+import type { Request, Response } from "express";
+import { createPlatformCompanySchema } from "../schemas/company.schema";
+import { createPlatformCompany, listPlatformCompanies } from "../services/platform.service";
+export async function listPlatformCompaniesController(_request: Request, response: Response) { try { return response.json({ data: await listPlatformCompanies() }); } catch (error) { console.error(error); return response.status(500).json({ error: { code: "INTERNAL_SERVER_ERROR", message: "Erro interno do servidor." } }); } }
+export async function createPlatformCompanyController(request: Request, response: Response) { const parsed = createPlatformCompanySchema.safeParse(request.body); if (!parsed.success) return response.status(400).json({ error: { code: "VALIDATION_ERROR", message: "Dados da empresa inválidos.", details: parsed.error.issues } }); try { return response.status(201).json({ data: await createPlatformCompany(parsed.data) }); } catch (error) { console.error(error); return response.status(409).json({ error: { code: "COMPANY_CREATION_FAILED", message: "Não foi possível criar a empresa. Verifique CNPJ e e-mail do administrador." } }); } }

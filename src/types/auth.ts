@@ -1,6 +1,7 @@
 export type UserRole =
-  | "ADMIN"
-  | "AGENT"
+  | "SUPER_ADMIN"
+  | "COMPANY_ADMIN"
+  | "ANALYST"
   | "REQUESTER";
 
 export interface AuthenticatedUser {
@@ -11,4 +12,5 @@ export interface AuthenticatedUser {
   email: string;
   role: UserRole;
   status: "ACTIVE" | "INACTIVE";
+  mustChangePassword: boolean;
 }

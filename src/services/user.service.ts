@@ -16,7 +16,7 @@ interface DatabaseUser {
   name: string;
   email: string;
 
-  role: "ADMIN" | "AGENT" | "REQUESTER";
+  role: "COMPANY_ADMIN" | "ANALYST" | "REQUESTER";
   status: "ACTIVE" | "INACTIVE";
 
   customer_name: string | null;
@@ -53,7 +53,7 @@ export async function updateUser({
     customer_id: string | null;
     name: string;
     email: string;
-    role: "ADMIN" | "AGENT" | "REQUESTER";
+    role: "COMPANY_ADMIN" | "ANALYST" | "REQUESTER";
     status: "ACTIVE" | "INACTIVE";
   }>(
     `
@@ -111,11 +111,6 @@ export async function updateUser({
     finalCustomerId = null;
   }
 
-  // REQUESTER precisa obrigatoriamente de customer
-  if (finalRole === "REQUESTER" && !finalCustomerId) {
-    throw new Error("CUSTOMER_REQUIRED");
-  }
-
   // Se houver customer, validar se pertence à mesma empresa
   if (finalRole === "REQUESTER" && finalCustomerId) {
     const customerResult = await pool.query<{ id: string }>(
@@ -140,7 +135,7 @@ export async function updateUser({
     customer_id: string | null;
     name: string;
     email: string;
-    role: "ADMIN" | "AGENT" | "REQUESTER";
+    role: "COMPANY_ADMIN" | "ANALYST" | "REQUESTER";
     status: "ACTIVE" | "INACTIVE";
     created_at: Date;
     updated_at: Date;
@@ -325,7 +320,7 @@ interface UserById {
   name: string;
   email: string;
 
-  role: "ADMIN" | "AGENT" | "REQUESTER";
+  role: "COMPANY_ADMIN" | "ANALYST" | "REQUESTER";
   status: "ACTIVE" | "INACTIVE";
 
   customer_name: string | null;
@@ -422,7 +417,7 @@ export async function createUser({
 
   let validatedCustomerId: string | null = null;
 
-  if (role === "REQUESTER") {
+  if (role === "REQUESTER" && customerId) {
     const customer = await pool.query<{ id: string }>(
       `
           SELECT id
@@ -449,7 +444,7 @@ export async function createUser({
     customer_id: string | null;
     name: string;
     email: string;
-    role: "ADMIN" | "AGENT" | "REQUESTER";
+    role: "COMPANY_ADMIN" | "ANALYST" | "REQUESTER";
     status: "ACTIVE" | "INACTIVE";
     created_at: Date;
     updated_at: Date;
@@ -522,7 +517,7 @@ export async function deactivateUser({
     company_id: string;
     name: string;
     email: string;
-    role: "ADMIN" | "AGENT" | "REQUESTER";
+    role: "COMPANY_ADMIN" | "ANALYST" | "REQUESTER";
     status: "ACTIVE" | "INACTIVE";
     updated_at: Date;
   }>(

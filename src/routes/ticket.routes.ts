@@ -24,63 +24,63 @@ export const ticketRoutes = Router();
 ticketRoutes.get(
   "/",
   authenticate,
-  authorize("ADMIN", "AGENT", "REQUESTER"),
+  authorize("COMPANY_ADMIN", "ANALYST", "REQUESTER"),
   listTicketsController,
 );
 
 ticketRoutes.get(
   "/:id",
   authenticate,
-  authorize("ADMIN", "AGENT", "REQUESTER"),
+  authorize("COMPANY_ADMIN", "ANALYST", "REQUESTER"),
   getTicketByIdController,
 );
 
 ticketRoutes.post(
   "/",
   authenticate,
-  authorize("ADMIN", "AGENT", "REQUESTER"),
+  authorize("COMPANY_ADMIN", "ANALYST", "REQUESTER"),
   createTicketController,
 );
 
 ticketRoutes.put(
   "/:id",
   authenticate,
-  authorize("ADMIN", "AGENT"),
+  authorize("COMPANY_ADMIN", "ANALYST"),
   updateTicketController,
 );
 
 ticketRoutes.post(
   "/:id/assign",
   authenticate,
-  authorize("ADMIN", "AGENT"),
+  authorize("COMPANY_ADMIN", "ANALYST"),
   assignTicketController,
 );
 
 ticketRoutes.post(
   "/:id/status",
   authenticate,
-  authorize("ADMIN", "AGENT"),
+  authorize("COMPANY_ADMIN", "ANALYST"),
   changeTicketStatusController,
 );
 
 ticketRoutes.post(
   "/:id/resolve",
   authenticate,
-  authorize("ADMIN", "AGENT"),
+  authorize("COMPANY_ADMIN", "ANALYST"),
   resolveTicketController,
 );
 
 ticketRoutes.post(
   "/:id/close",
   authenticate,
-  authorize("ADMIN", "AGENT"),
+  authorize("COMPANY_ADMIN", "ANALYST"),
   closeTicketController,
 );
 
 ticketRoutes.post(
   "/:id/reopen",
   authenticate,
-  authorize("ADMIN", "AGENT"),
+  authorize("COMPANY_ADMIN", "ANALYST"),
   reopenTicketController,
 );
 
@@ -88,8 +88,8 @@ ticketRoutes.get(
   "/:id/comments",
   authenticate,
   authorize(
-    "ADMIN",
-    "AGENT",
+    "COMPANY_ADMIN",
+    "ANALYST",
     "REQUESTER"
   ),
   listTicketCommentsController
@@ -99,8 +99,8 @@ ticketRoutes.post(
   "/:id/comments",
   authenticate,
   authorize(
-    "ADMIN",
-    "AGENT",
+    "COMPANY_ADMIN",
+    "ANALYST",
     "REQUESTER"
   ),
   createTicketCommentController
@@ -110,8 +110,8 @@ ticketRoutes.get(
   "/:id/history",
   authenticate,
   authorize(
-    "ADMIN",
-    "AGENT",
+    "COMPANY_ADMIN",
+    "ANALYST",
     "REQUESTER"
   ),
   listTicketHistoryController

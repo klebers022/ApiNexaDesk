@@ -20,7 +20,7 @@ export const listUsersQuerySchema = z.object({
     .optional(),
 
   role: z
-    .enum(["ADMIN", "AGENT", "REQUESTER"])
+    .enum(["COMPANY_ADMIN", "ANALYST", "REQUESTER"])
     .optional(),
 
   status: z
@@ -50,8 +50,8 @@ export const createUserSchema = z
       .min(8, "A senha deve ter pelo menos 8 caracteres."),
 
     role: z.enum([
-      "ADMIN",
-      "AGENT",
+      "COMPANY_ADMIN",
+      "ANALYST",
       "REQUESTER",
     ]),
 
@@ -62,18 +62,6 @@ export const createUserSchema = z
       .optional(),
   })
   .superRefine((data, ctx) => {
-    if (
-      data.role === "REQUESTER" &&
-      !data.customerId
-    ) {
-      ctx.addIssue({
-        code: z.ZodIssueCode.custom,
-        path: ["customerId"],
-        message:
-          "REQUESTER deve estar vinculado a um cliente.",
-      });
-    }
-
     if (
       data.role !== "REQUESTER" &&
       data.customerId
@@ -103,7 +91,7 @@ export const createUserSchema = z
       .optional(),
 
     role: z
-      .enum(["ADMIN", "AGENT", "REQUESTER"])
+      .enum(["COMPANY_ADMIN", "ANALYST", "REQUESTER"])
       .optional(),
 
     status: z

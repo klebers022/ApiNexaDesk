@@ -19,8 +19,9 @@ import {
 // ======================================================
 
 type UserRole =
-  | "ADMIN"
-  | "AGENT"
+  | "SUPER_ADMIN"
+  | "COMPANY_ADMIN"
+  | "ANALYST"
   | "REQUESTER";
 
 type TicketStatus =
@@ -261,7 +262,7 @@ export async function listTickets({
     );
   }
 
-  if (role === "AGENT") {
+  if (role === "ANALYST") {
     values.push(userId);
 
     const userPosition =
@@ -501,7 +502,7 @@ export async function getTicketById({
     );
   }
 
-  if (role === "AGENT") {
+  if (role === "ANALYST") {
     values.push(userId);
 
     const userPosition =
@@ -599,6 +600,7 @@ interface CreateTicketParams
 
   authenticatedUserId: string;
   authenticatedUserRole: UserRole;
+  transactionClient?: PoolClient;
 }
 
 export async function createTicket({
@@ -616,12 +618,13 @@ export async function createTicket({
 
   teamId,
   assigneeId,
+  transactionClient,
 }: CreateTicketParams) {
-  const client =
-    await pool.connect();
+  const ownsTransaction = !transactionClient;
+  const client = transactionClient ?? await pool.connect();
 
   try {
-    await client.query("BEGIN");
+    if (ownsTransaction) await client.query("BEGIN");
 
     // ======================================================
     // REQUESTER
@@ -746,7 +749,7 @@ export async function createTicket({
 
             WHERE id = $1
               AND company_id = $2
-              AND role = 'AGENT'
+              AND role = 'ANALYST'
               AND status = 'ACTIVE'
 
             LIMIT 1;
@@ -913,7 +916,7 @@ export async function createTicket({
       );
     }
 
-    await client.query("COMMIT");
+    if (ownsTransaction) await client.query("COMMIT");
 
     return {
       id:
@@ -946,13 +949,11 @@ export async function createTicket({
         ticket.created_at,
     };
   } catch (error) {
-    await client.query(
-      "ROLLBACK"
-    );
+    if (ownsTransaction) await client.query("ROLLBACK");
 
     throw error;
   } finally {
-    client.release();
+    if (ownsTransaction) client.release();
   }
 }
 
@@ -992,7 +993,7 @@ async function findAccessibleTicket(
     );
   }
 
-  if (role === "AGENT") {
+  if (role === "ANALYST") {
     values.push(userId);
 
     const userPosition =
@@ -1395,6 +1396,17 @@ export async function assignTicket({
       throw new Error(
         "TICKET_NOT_FOUND"
       );
+    }
+
+    if (authenticatedUserRole === "ANALYST") {
+      if (current.assignee_id || assigneeId !== authenticatedUserId || (teamId !== undefined && teamId !== current.team_id) || !current.team_id) {
+        throw new Error("ANALYST_ASSIGNMENT_FORBIDDEN");
+      }
+      const membership = await client.query<{ id: string }>(
+        "SELECT id FROM team_members WHERE company_id = $1 AND team_id = $2 AND user_id = $3 LIMIT 1",
+        [companyId, current.team_id, authenticatedUserId],
+      );
+      if (!membership.rows[0]) throw new Error("ANALYST_ASSIGNMENT_FORBIDDEN");
     }
 
     const finalTeamId =

@@ -17,34 +17,34 @@ export const customerRoutes = Router();
 customerRoutes.get(
   "/",
   authenticate,
-  authorize("ADMIN"),
+  authorize("COMPANY_ADMIN"),
   listCustomersController,
 );
 
 customerRoutes.get(
   "/:id",
   authenticate,
-  authorize("ADMIN"),
+  authorize("COMPANY_ADMIN"),
   getCustomerByIdController,
 );
 
 customerRoutes.post(
   "/",
   authenticate,
-  authorize("ADMIN"),
+  authorize("COMPANY_ADMIN"),
   createCustomerController
 );
 
 customerRoutes.put(
   "/:id",
   authenticate,
-  authorize("ADMIN"),
+  authorize("COMPANY_ADMIN"),
   updateCustomerController
 );
 
 customerRoutes.delete(
   "/:id",
   authenticate,
-  authorize("ADMIN"),
+  authorize("COMPANY_ADMIN"),
   deactivateCustomerController
 );

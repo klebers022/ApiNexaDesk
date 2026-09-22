@@ -27,8 +27,8 @@ categoryRoutes.get(
   "/",
   authenticate,
   authorize(
-    "ADMIN",
-    "AGENT",
+    "COMPANY_ADMIN",
+    "ANALYST",
     "REQUESTER"
   ),
   listCategoriesController
@@ -42,8 +42,8 @@ categoryRoutes.get(
   "/:id",
   authenticate,
   authorize(
-    "ADMIN",
-    "AGENT",
+    "COMPANY_ADMIN",
+    "ANALYST",
     "REQUESTER"
   ),
   getCategoryByIdController
@@ -56,7 +56,7 @@ categoryRoutes.get(
 categoryRoutes.post(
   "/",
   authenticate,
-  authorize("ADMIN"),
+  authorize("COMPANY_ADMIN"),
   createCategoryController
 );
 
@@ -67,7 +67,7 @@ categoryRoutes.post(
 categoryRoutes.put(
   "/:id",
   authenticate,
-  authorize("ADMIN"),
+  authorize("COMPANY_ADMIN"),
   updateCategoryController
 );
 
@@ -78,6 +78,6 @@ categoryRoutes.put(
 categoryRoutes.delete(
   "/:id",
   authenticate,
-  authorize("ADMIN"),
+  authorize("COMPANY_ADMIN"),
   deactivateCategoryController
 );

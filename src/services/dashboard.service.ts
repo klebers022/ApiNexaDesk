@@ -9,8 +9,9 @@ import {
 // ======================================================
 
 type UserRole =
-  | "ADMIN"
-  | "AGENT"
+  | "SUPER_ADMIN"
+  | "COMPANY_ADMIN"
+  | "ANALYST"
   | "REQUESTER";
 
 interface DashboardParams
@@ -88,7 +89,7 @@ function buildTicketAccessFilter({
   // ADMIN
   // ======================================================
 
-  if (role === "ADMIN") {
+  if (role === "COMPANY_ADMIN") {
     return {
       where: `
         t.company_id = $1

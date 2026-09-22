@@ -21,46 +21,46 @@ export const teamRoutes = Router();
 teamRoutes.get(
   "/",
   authenticate,
-  authorize("ADMIN", "AGENT"),
+  authorize("COMPANY_ADMIN", "ANALYST"),
   listTeamsController,
 );
 
 teamRoutes.get(
   "/:id",
   authenticate,
-  authorize("ADMIN", "AGENT"),
+  authorize("COMPANY_ADMIN", "ANALYST"),
   getTeamByIdController,
 );
 
 teamRoutes.get(
   "/:id/members",
   authenticate,
-  authorize("ADMIN", "AGENT"),
+  authorize("COMPANY_ADMIN", "ANALYST"),
   listTeamMembersController,
 );
 
 // Administração
-teamRoutes.post("/", authenticate, authorize("ADMIN"), createTeamController);
+teamRoutes.post("/", authenticate, authorize("COMPANY_ADMIN"), createTeamController);
 
-teamRoutes.put("/:id", authenticate, authorize("ADMIN"), updateTeamController);
+teamRoutes.put("/:id", authenticate, authorize("COMPANY_ADMIN"), updateTeamController);
 
 teamRoutes.post(
   "/:id/members",
   authenticate,
-  authorize("ADMIN"),
+  authorize("COMPANY_ADMIN"),
   addTeamMemberController,
 );
 
 teamRoutes.delete(
   "/:id/members/:userId",
   authenticate,
-  authorize("ADMIN"),
+  authorize("COMPANY_ADMIN"),
   removeTeamMemberController,
 );
 
 teamRoutes.delete(
   "/:id",
   authenticate,
-  authorize("ADMIN"),
+  authorize("COMPANY_ADMIN"),
   deleteTeamController,
 );

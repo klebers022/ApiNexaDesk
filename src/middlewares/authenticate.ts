@@ -6,18 +6,19 @@ import { pool } from "../database/connection";
 
 interface TokenPayload {
   sub: string;
-  companyId: string;
-  role: "ADMIN" | "AGENT" | "REQUESTER";
+  companyId: string | null;
+  role: "SUPER_ADMIN" | "COMPANY_ADMIN" | "ANALYST" | "REQUESTER";
 }
 
 interface DatabaseUser {
   id: string;
-  company_id: string;
+  company_id: string | null;
   customer_id: string | null;
   name: string;
   email: string;
-  role: "ADMIN" | "AGENT" | "REQUESTER";
+  role: "SUPER_ADMIN" | "COMPANY_ADMIN" | "ANALYST" | "REQUESTER";
   status: "ACTIVE" | "INACTIVE";
+  must_change_password: boolean;
 }
 
 export async function authenticate(
@@ -64,13 +65,13 @@ export async function authenticate(
           name,
           email,
           role,
-          status
+          status,
+          must_change_password
         FROM users
         WHERE id = $1
-          AND company_id = $2
         LIMIT 1;
       `,
-      [userId, payload.companyId]
+      [userId]
     );
 
     const user = result.rows[0];
@@ -86,12 +87,13 @@ export async function authenticate(
 
     request.user = {
       id: user.id,
-      companyId: user.company_id,
+      companyId: user.company_id ?? "",
       customerId: user.customer_id,
       name: user.name,
       email: user.email,
       role: user.role,
       status: user.status,
+      mustChangePassword: user.must_change_password,
     };
 
     return next();

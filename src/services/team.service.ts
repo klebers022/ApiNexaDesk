@@ -528,7 +528,7 @@ export async function addTeamMember({
   // 3. SOMENTE AGENT PODE ENTRAR EM EQUIPE
   // ======================================================
 
-  if (memberUser.role !== "AGENT") {
+  if (memberUser.role !== "ANALYST") {
     throw new Error("USER_MUST_BE_AGENT");
   }
 

@@ -64,5 +64,23 @@ describe("API", () => {
       expect(response.status).toBe(401);
       expect(response.body.error.code).toBe("INVALID_TOKEN");
     });
+
+    it("bloqueia rota /api/v1/ai/triage sem autenticação", async () => {
+      const response = await request(app).post("/api/v1/ai/triage").send({ text: "Teste" });
+      expect(response.status).toBe(401);
+      expect(response.body.error.code).toBe("UNAUTHORIZED");
+    });
+
+    it("bloqueia rota /api/v1/ai/chat sem autenticação", async () => {
+      const response = await request(app).post("/api/v1/ai/chat").send({ message: "Olá" });
+      expect(response.status).toBe(401);
+      expect(response.body.error.code).toBe("UNAUTHORIZED");
+    });
+
+    it("serve o widget estático do chatbot em /chatbot", async () => {
+      const response = await request(app).get("/chatbot/");
+      expect(response.status).toBe(200);
+      expect(response.text).toContain("NexaDesk AI");
+    });
   });
 });

@@ -24,8 +24,12 @@ import { ticketRoutes } from "./routes/ticket.routes";
 
 import { notificationRoutes } from "./routes/notification.routes";
 
+import path from "path";
 import { dashboardRoutes } from "./routes/dashboard.routes";
 import { companyRoutes } from "./routes/company.routes";
+import { platformRoutes } from "./routes/platform.routes";
+import { aiRoutes } from "./routes/ai.routes";
+import { articleRoutes } from "./routes/article.routes";
 
 // ======================================================
 // MIDDLEWARES
@@ -53,7 +57,12 @@ app.disable("x-powered-by");
 // SECURITY HEADERS
 // ======================================================
 
-app.use(helmet());
+app.use(
+  helmet({
+    contentSecurityPolicy: false,
+    crossOriginEmbedderPolicy: false,
+  })
+);
 
 // ======================================================
 // CORS
@@ -156,6 +165,20 @@ app.use("/api/v1/notifications", notificationRoutes);
 app.use("/api/v1/dashboard", dashboardRoutes);
 
 app.use("/api/v1/companies", companyRoutes);
+app.use("/api/v1/platform", platformRoutes);
+
+// ======================================================
+// AI CHATBOT & KNOWLEDGE
+// ======================================================
+
+app.use("/api/v1/ai", aiRoutes);
+app.use("/api/v1/knowledge-articles", articleRoutes);
+
+// ======================================================
+// STATIC CHATBOT DEMO WIDGET
+// ======================================================
+
+app.use("/chatbot", express.static(path.join(__dirname, "../public/chatbot")));
 
 // ======================================================
 // 404

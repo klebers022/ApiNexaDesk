@@ -31,6 +31,15 @@ export async function getDashboardController(
     });
   }
 
+  if (request.user.role === "SUPER_ADMIN" || !request.user.companyId) {
+    return response.status(403).json({
+      error: {
+        code: "COMPANY_CONTEXT_REQUIRED",
+        message: "O dashboard operacional exige uma empresa ativa.",
+      },
+    });
+  }
+
   // ======================================================
   // VALIDATION
   // ======================================================

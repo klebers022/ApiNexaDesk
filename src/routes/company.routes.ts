@@ -4,4 +4,4 @@ import { authenticate } from "../middlewares/authenticate";
 import { authorize } from "../middlewares/authorize";
 export const companyRoutes = Router();
 companyRoutes.get("/me", authenticate, getCompanyController);
-companyRoutes.put("/me", authenticate, authorize("ADMIN"), updateCompanyController);
+companyRoutes.put("/me", authenticate, authorize("COMPANY_ADMIN"), updateCompanyController);
